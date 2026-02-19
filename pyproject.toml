@@ -1,0 +1,14 @@
+[project]
+name = "ottoneu-draft-assistant"
+version = "0.1.0"
+description = "Draft day cheat sheet for Ottoneu fantasy baseball auction drafts"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit>=1.40.0",
+    "pandas>=2.2.0",
+    "openpyxl>=3.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
