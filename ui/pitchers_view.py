@@ -7,10 +7,17 @@ from db.queries import draft_player, get_teams, query_players
 # Default columns to display (key stats)
 DEFAULT_COLUMNS = [
     "name", "ottoneu_team", "salary", "position", "fpts",
+    "dollar_value", "surplus_value",
     "ip", "era", "fip", "xera", "k_per_9", "bb_per_9",
     "sv", "hld", "war", "stuff_plus", "pitching_plus",
     "draft_price",
 ]
+
+COLUMN_CONFIG = {
+    "dollar_value": st.column_config.NumberColumn("$Value", format="$%d"),
+    "surplus_value": st.column_config.NumberColumn("Surplus", format="%+d"),
+    "predicted_price": st.column_config.NumberColumn("Pred$", format="$%d"),
+}
 
 
 def render_pitchers(filters: dict):
@@ -36,6 +43,7 @@ def render_pitchers(filters: dict):
 
     display_df = df[display_cols].copy()
 
+    col_cfg = {k: v for k, v in COLUMN_CONFIG.items() if k in display_cols}
     st.dataframe(
         display_df,
         use_container_width=True,
@@ -44,6 +52,7 @@ def render_pitchers(filters: dict):
         on_select="rerun",
         selection_mode="single-row",
         key="pitchers_table",
+        column_config=col_cfg,
     )
 
     # Draft action form

@@ -35,15 +35,30 @@ def _merge_pair(base: pd.DataFrame, other: pd.DataFrame) -> pd.DataFrame:
     return merged
 
 
+def _merge_projections(df: pd.DataFrame, proj: pd.DataFrame) -> pd.DataFrame:
+    """Left-merge projection columns onto the main DataFrame."""
+    if proj.empty:
+        return df
+    proj = proj.drop_duplicates(subset="name", keep="first")
+    return df.merge(proj, on="name", how="left")
+
+
 def merge_hitters(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Merge hitter files. Priority: fantasy > advanced > batted_ball."""
     df = _dedup(files["hitters_fantasy"].copy())
     df = _merge_pair(df, files["hitters_advanced"])
     df = _merge_pair(df, files["hitters_batted_ball"])
 
+    # Merge projections if available
+    if "hitters_projections" in files:
+        df = _merge_projections(df, files["hitters_projections"])
+
     df["is_drafted"] = False
     df["draft_price"] = pd.NA
     df["position"] = pd.NA
+    df["dollar_value"] = pd.NA
+    df["predicted_price"] = pd.NA
+    df["surplus_value"] = pd.NA
     return df
 
 
@@ -54,7 +69,14 @@ def merge_pitchers(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
     df = _merge_pair(df, files["pitchers_batted_ball"])
     df = _merge_pair(df, files["pitchers_modeling"])
 
+    # Merge projections if available
+    if "pitchers_projections" in files:
+        df = _merge_projections(df, files["pitchers_projections"])
+
     df["is_drafted"] = False
     df["draft_price"] = pd.NA
     df["position"] = pd.NA
+    df["dollar_value"] = pd.NA
+    df["predicted_price"] = pd.NA
+    df["surplus_value"] = pd.NA
     return df

@@ -176,9 +176,53 @@ def load_file(filename: str) -> pd.DataFrame:
     return df
 
 
+def load_projections(filename: str) -> pd.DataFrame:
+    """Load a projection CSV and prefix stat columns with 'proj_'."""
+    path = DATA_DIR / filename
+    if not path.exists():
+        return pd.DataFrame()
+
+    if _is_xlsx(path):
+        df = pd.read_excel(path, engine="openpyxl")
+    else:
+        df = pd.read_csv(path, encoding="utf-8-sig")
+
+    if "Name" in df.columns:
+        df = df.dropna(subset=["Name"])
+
+    unnamed_cols = [c for c in df.columns if str(c).startswith("Unnamed")]
+    if unnamed_cols:
+        df = df.drop(columns=unnamed_cols)
+
+    if "$" in df.columns:
+        df["$"] = df["$"].apply(_parse_salary)
+
+    for col in df.columns:
+        if col in PCT_COLUMNS:
+            df[col] = df[col].apply(_parse_pct)
+
+    if "#" in df.columns:
+        df = df.drop(columns=["#"])
+
+    # Rename using standard mapping
+    rename_map = {c: COLUMN_RENAMES[c] for c in df.columns if c in COLUMN_RENAMES}
+    df = df.rename(columns=rename_map)
+
+    # Coerce numeric columns
+    for col in df.columns:
+        if col not in ("name", "ottoneu_team", "position"):
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Prefix all stat columns with 'proj_' (keep 'name' as join key)
+    proj_rename = {c: f"proj_{c}" for c in df.columns if c != "name"}
+    df = df.rename(columns=proj_rename)
+
+    return df
+
+
 def load_all():
     """Load all source files and return them as a dict."""
-    return {
+    result = {
         "hitters_advanced": load_file("hitters_advanced.csv"),
         "hitters_batted_ball": load_file("hitters_batted_ball.csv"),
         "hitters_fantasy": load_file("hitters_fantasy.csv"),
@@ -187,3 +231,13 @@ def load_all():
         "pitchers_fantasy": load_file("pitchers_fantasy.csv"),
         "pitchers_modeling": load_file("pitchers_modeling.csv"),
     }
+
+    # Load projection files if they exist
+    hitter_proj = load_projections("hitters_projections.csv")
+    pitcher_proj = load_projections("pitchers_projections.csv")
+    if not hitter_proj.empty:
+        result["hitters_projections"] = hitter_proj
+    if not pitcher_proj.empty:
+        result["pitchers_projections"] = pitcher_proj
+
+    return result

@@ -6,8 +6,14 @@ import streamlit as st
 HITTER_POSITIONS = ["C", "1B", "2B", "SS", "3B", "OF", "DH", "Util"]
 PITCHER_POSITIONS = ["SP", "RP"]
 
-HITTER_KEY_STATS = ["fpts", "wrc_plus", "ops", "woba", "iso", "avg", "obp", "slg", "hr", "sb", "bb_pct", "k_pct"]
-PITCHER_KEY_STATS = ["fpts", "era", "fip", "xera", "k_per_9", "bb_per_9", "ip", "sv", "war", "stuff_plus", "pitching_plus"]
+HITTER_KEY_STATS = [
+    "fpts", "dollar_value", "surplus_value",
+    "wrc_plus", "ops", "woba", "iso", "avg", "obp", "slg", "hr", "sb", "bb_pct", "k_pct",
+]
+PITCHER_KEY_STATS = [
+    "fpts", "dollar_value", "surplus_value",
+    "era", "fip", "xera", "k_per_9", "bb_per_9", "ip", "sv", "war", "stuff_plus", "pitching_plus",
+]
 
 
 def render_sidebar(active_tab: str, available_columns: list[str]) -> dict:

@@ -41,3 +41,10 @@ streamlit run app.py
 - Source CSVs use BOM encoding (`utf-8-sig`); `hitters_fantasy.csv` is actually XLSX
 - Column names are SQL-friendly (e.g., `k_per_9`, `hr_per_fb`, `wrc_plus`)
 - Draft state (is_drafted, draft_price) stored in SQLite alongside stats
+
+## Data Context
+
+- **Current source data is historical** (past season stats), not projections
+- **Dynasty league**: salary data represents keeper salaries for currently owned players
+- Keeper salaries are biased downward (players are only kept if owner deems them below market value) — do NOT use as training data for price prediction
+- Projection data must be sourced separately from historical stats

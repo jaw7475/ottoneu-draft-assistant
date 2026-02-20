@@ -165,3 +165,73 @@ def get_column_names(table: str) -> list[str]:
     col_info = pd.read_sql(f"PRAGMA table_info({table})", conn)
     conn.close()
     return col_info["name"].tolist()
+
+
+def get_valuation_config() -> dict[str, str]:
+    """Get all valuation config key-value pairs."""
+    conn = get_connection()
+    rows = conn.execute("SELECT key, value FROM valuation_config").fetchall()
+    conn.close()
+    return {r["key"]: r["value"] for r in rows}
+
+
+def set_valuation_config(config: dict[str, str]) -> None:
+    """Upsert valuation config values."""
+    conn = get_connection()
+    for key, value in config.items():
+        conn.execute(
+            "INSERT OR REPLACE INTO valuation_config (key, value) VALUES (?, ?)",
+            (key, str(value)),
+        )
+    conn.commit()
+    conn.close()
+
+
+def save_historical_prices(rows: list[dict]) -> int:
+    """Insert historical FA auction prices. Returns count of inserted rows."""
+    conn = get_connection()
+    inserted = 0
+    for row in rows:
+        try:
+            conn.execute(
+                """INSERT OR REPLACE INTO historical_prices
+                   (player_name, season, price, position, auction_date)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (row["player_name"], row["season"], row.get("price"),
+                 row.get("position"), row.get("auction_date")),
+            )
+            inserted += 1
+        except Exception:
+            continue
+    conn.commit()
+    conn.close()
+    return inserted
+
+
+def get_historical_prices() -> pd.DataFrame:
+    """Get all historical FA auction prices."""
+    conn = get_connection()
+    df = pd.read_sql("SELECT * FROM historical_prices ORDER BY season, player_name", conn)
+    conn.close()
+    return df
+
+
+def recalculate_values() -> None:
+    """Recalculate dollar values in-place using current config and projections."""
+    from valuation.dollar_value import calculate_dollar_values
+
+    conn = get_connection()
+    config = dict(conn.execute("SELECT key, value FROM valuation_config").fetchall())
+
+    hitters = pd.read_sql("SELECT * FROM hitters", conn)
+    pitchers = pd.read_sql("SELECT * FROM pitchers", conn)
+
+    if "proj_fpts" not in hitters.columns and "proj_fpts" not in pitchers.columns:
+        conn.close()
+        return
+
+    hitters, pitchers = calculate_dollar_values(hitters, pitchers, config)
+
+    hitters.to_sql("hitters", conn, if_exists="replace", index=False)
+    pitchers.to_sql("pitchers", conn, if_exists="replace", index=False)
+    conn.close()

@@ -7,10 +7,17 @@ from db.queries import draft_player, get_teams, query_players
 # Default columns to display (key stats)
 DEFAULT_COLUMNS = [
     "name", "ottoneu_team", "salary", "position", "fpts",
+    "dollar_value", "surplus_value",
     "pa", "avg", "obp", "slg", "ops", "woba", "wrc_plus",
     "hr", "sb", "bb_pct", "k_pct", "iso", "babip",
     "draft_price",
 ]
+
+COLUMN_CONFIG = {
+    "dollar_value": st.column_config.NumberColumn("$Value", format="$%d"),
+    "surplus_value": st.column_config.NumberColumn("Surplus", format="%+d"),
+    "predicted_price": st.column_config.NumberColumn("Pred$", format="$%d"),
+}
 
 
 def render_hitters(filters: dict):
@@ -37,6 +44,7 @@ def render_hitters(filters: dict):
     # Highlight best value available
     display_df = df[display_cols].copy()
 
+    col_cfg = {k: v for k, v in COLUMN_CONFIG.items() if k in display_cols}
     st.dataframe(
         display_df,
         use_container_width=True,
@@ -45,6 +53,7 @@ def render_hitters(filters: dict):
         on_select="rerun",
         selection_mode="single-row",
         key="hitters_table",
+        column_config=col_cfg,
     )
 
     # Draft action form
