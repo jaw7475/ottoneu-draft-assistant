@@ -2,14 +2,14 @@
 
 import streamlit as st
 
-from data.positions import parse_positions
+from data.positions import load_position_universe
 from db.queries import (
     get_historical_prices,
     get_valuation_config,
     recalculate_values,
     save_historical_prices,
     set_valuation_config,
-    update_positions,
+    update_from_position_csv,
 )
 from valuation.dollar_value import DEFAULT_CONFIG
 
@@ -83,17 +83,17 @@ def _render_league_config():
 def _render_position_upload():
     """Position data upload."""
     st.subheader("Position Data")
-    st.write("Upload an Ottoneu average values CSV export to populate position data.")
+    st.write("Upload an Ottoneu average values CSV export to update position, team, salary, and ownership data.")
 
     uploaded_file = st.file_uploader("Ottoneu average values CSV", type=["csv"])
 
     if uploaded_file is not None:
         if st.button("Load positions"):
             try:
-                positions = parse_positions(uploaded_file)
-                h_updated = update_positions("hitters", positions)
-                p_updated = update_positions("pitchers", positions)
-                st.success(f"Updated positions for {h_updated} hitters and {p_updated} pitchers.")
+                pos_df = load_position_universe(uploaded_file)
+                h_updated = update_from_position_csv("hitters", pos_df)
+                p_updated = update_from_position_csv("pitchers", pos_df)
+                st.success(f"Updated {h_updated} hitters and {p_updated} pitchers.")
             except Exception as e:
                 st.error(f"Error parsing file: {e}")
 

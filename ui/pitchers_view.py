@@ -17,6 +17,7 @@ COLUMN_CONFIG = {
     "dollar_value": st.column_config.NumberColumn("$Value", format="$%d"),
     "surplus_value": st.column_config.NumberColumn("Surplus", format="%+d"),
     "predicted_price": st.column_config.NumberColumn("Pred$", format="$%d"),
+    "ownership_pct": st.column_config.NumberColumn("Own%", format="%.1f%%"),
 }
 
 

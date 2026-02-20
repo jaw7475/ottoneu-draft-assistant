@@ -240,4 +240,14 @@ def load_all():
     if not pitcher_proj.empty:
         result["pitchers_projections"] = pitcher_proj
 
+    # Load position CSVs if they exist
+    from data.positions import load_position_universe
+
+    hitter_pos = DATA_DIR / "hitters_positions.csv"
+    pitcher_pos = DATA_DIR / "pitchers_positions.csv"
+    if hitter_pos.exists():
+        result["hitters_positions"] = load_position_universe(hitter_pos)
+    if pitcher_pos.exists():
+        result["pitchers_positions"] = load_position_universe(pitcher_pos)
+
     return result

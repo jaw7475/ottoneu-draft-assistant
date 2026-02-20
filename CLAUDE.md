@@ -48,3 +48,6 @@ streamlit run app.py
 - **Dynasty league**: salary data represents keeper salaries for currently owned players
 - Keeper salaries are biased downward (players are only kept if owner deems them below market value) — do NOT use as training data for price prediction
 - Projection data must be sourced separately from historical stats
+- **Position CSVs** (`hitters_positions.csv`, `pitchers_positions.csv`) represent the full player universe including minor leaguers
+- Position CSVs are the **authoritative source** for current ownership, salary, and positions
+- Pruning rule: players with no projections, no historical stats, and ≤5% Ottoneu-wide ownership are dropped

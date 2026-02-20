@@ -159,6 +159,34 @@ def update_positions(table: str, positions: dict[str, str]) -> int:
     return updated
 
 
+def update_from_position_csv(table: str, pos_df: pd.DataFrame) -> int:
+    """Update existing players' position, team, salary, and ownership from a position CSV.
+
+    Only updates players already in the table (does not insert new rows).
+    Returns count of updated rows.
+    """
+    conn = get_connection()
+    updated = 0
+    for _, row in pos_df.iterrows():
+        sets = []
+        params = []
+        for col in ["position", "ottoneu_team", "salary", "ownership_pct"]:
+            if col in row.index and pd.notna(row[col]):
+                sets.append(f"{col} = ?")
+                params.append(row[col])
+        if not sets:
+            continue
+        params.append(row["name"])
+        cursor = conn.execute(
+            f"UPDATE {table} SET {', '.join(sets)} WHERE name = ?",
+            params,
+        )
+        updated += cursor.rowcount
+    conn.commit()
+    conn.close()
+    return updated
+
+
 def get_column_names(table: str) -> list[str]:
     """Get column names for a table."""
     conn = get_connection()
