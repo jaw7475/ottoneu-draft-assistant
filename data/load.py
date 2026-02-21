@@ -233,8 +233,8 @@ def load_all():
     }
 
     # Load projection files if they exist
-    hitter_proj = load_projections("hitters_projections.csv")
-    pitcher_proj = load_projections("pitchers_projections.csv")
+    hitter_proj = load_projections("proj_hitters.csv")
+    pitcher_proj = load_projections("proj_pitchers.csv")
     if not hitter_proj.empty:
         result["hitters_projections"] = hitter_proj
     if not pitcher_proj.empty:
@@ -243,8 +243,8 @@ def load_all():
     # Load position CSVs if they exist
     from data.positions import load_position_universe
 
-    hitter_pos = DATA_DIR / "hitters_positions.csv"
-    pitcher_pos = DATA_DIR / "pitchers_positions.csv"
+    hitter_pos = DATA_DIR / "hitter_positions.csv"
+    pitcher_pos = DATA_DIR / "pitcher_positions.csv"
     if hitter_pos.exists():
         result["hitters_positions"] = load_position_universe(hitter_pos)
     if pitcher_pos.exists():
