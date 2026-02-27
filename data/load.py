@@ -1,5 +1,7 @@
 """Load and clean source CSV/XLSX files."""
 
+import re
+import unicodedata
 from pathlib import Path
 
 import pandas as pd
@@ -100,6 +102,26 @@ PCT_COLUMNS = {
 }
 
 
+def normalize_name(name: str) -> str:
+    """Normalize a player name for consistent joins across data sources."""
+    if not isinstance(name, str):
+        return name
+    # Strip whitespace
+    name = name.strip()
+    # Remove accent marks (é → e, ñ → n, etc.)
+    name = "".join(
+        c for c in unicodedata.normalize("NFD", name)
+        if unicodedata.category(c) != "Mn"
+    )
+    # Remove periods (J.D. → JD)
+    name = name.replace(".", "")
+    # Remove common suffixes
+    name = re.sub(r",?\s+(?:Jr|Sr|II|III|IV)\.?$", "", name)
+    # Collapse multiple spaces
+    name = re.sub(r"\s+", " ", name).strip()
+    return name
+
+
 def _is_xlsx(path: Path) -> bool:
     """Check if a file is actually XLSX by reading magic bytes."""
     with open(path, "rb") as f:
@@ -168,6 +190,10 @@ def load_file(filename: str) -> pd.DataFrame:
     rename_map = {c: COLUMN_RENAMES[c] for c in df.columns if c in COLUMN_RENAMES}
     df = df.rename(columns=rename_map)
 
+    # Normalize player names for consistent joins
+    if "name" in df.columns:
+        df["name"] = df["name"].apply(normalize_name)
+
     # Coerce numeric columns that may have pd.NA keeping them as object dtype
     for col in df.columns:
         if col not in ("name", "ottoneu_team", "position"):
@@ -207,6 +233,10 @@ def load_projections(filename: str) -> pd.DataFrame:
     # Rename using standard mapping
     rename_map = {c: COLUMN_RENAMES[c] for c in df.columns if c in COLUMN_RENAMES}
     df = df.rename(columns=rename_map)
+
+    # Normalize player names for consistent joins
+    if "name" in df.columns:
+        df["name"] = df["name"].apply(normalize_name)
 
     # Coerce numeric columns
     for col in df.columns:

@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from data.load import _parse_salary
+from data.load import _parse_salary, normalize_name
 
 
 def _find_column(columns, patterns):
@@ -58,7 +58,7 @@ def load_position_universe(source) -> pd.DataFrame:
 
     # Build result DataFrame
     result = pd.DataFrame()
-    result["name"] = df[name_col].str.strip()
+    result["name"] = df[name_col].str.strip().apply(normalize_name)
 
     if pos_col is not None:
         result["position"] = df[pos_col].str.strip()
