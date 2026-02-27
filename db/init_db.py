@@ -6,11 +6,14 @@ from pathlib import Path
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from data.load import load_all
+from data.load import DATA_DIR, load_all
 from data.merge import merge_hitters, merge_pitchers
 from db.connection import DB_PATH, get_connection
+from db.queries import save_historical_prices
 from db.schema import create_tables
 from valuation.dollar_value import DEFAULT_CONFIG, calculate_dollar_values
+from valuation.historical import load_draft_results
+from valuation.price_model import train_and_predict
 
 
 def _seed_default_config(conn):
@@ -68,6 +71,28 @@ def init_db():
 
     hitters.to_sql("hitters", conn, if_exists="replace", index=False)
     pitchers.to_sql("pitchers", conn, if_exists="replace", index=False)
+
+    # Load draft results if available
+    draft_csv = DATA_DIR / "draft_results.csv"
+    if draft_csv.exists():
+        print("\nLoading draft results...")
+        rows = load_draft_results(draft_csv)
+        count = save_historical_prices(rows)
+        print(f"  Loaded {count} draft records")
+    else:
+        print(f"\nNo draft_results.csv found at {draft_csv} — skipping price model.")
+
+    # Train price prediction model if draft data was loaded
+    hist_count = conn.execute("SELECT COUNT(*) FROM historical_prices").fetchone()[0]
+    if hist_count > 0 and has_proj:
+        print("\nTraining price prediction model...")
+        conn.close()
+        try:
+            result = train_and_predict()
+            print(f"  R²={result['r2']:.3f}, matched {result['matched_count']} players")
+        except Exception as e:
+            print(f"  Warning: model training failed: {e}")
+        conn = get_connection()
 
     # Verify
     h_count = conn.execute("SELECT COUNT(*) FROM hitters").fetchone()[0]

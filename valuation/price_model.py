@@ -7,6 +7,7 @@ from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 import joblib
 
+from data.load import normalize_name
 from db.connection import get_connection
 from valuation.surplus import update_surplus_values
 
@@ -16,8 +17,19 @@ HITTER_FEATURES = ["proj_fpts", "proj_wrc_plus", "proj_hr", "proj_sb", "proj_ops
 PITCHER_FEATURES = ["proj_fpts", "proj_ip", "proj_era", "proj_k_per_9", "is_closer"]
 
 
+def _derive_pitcher_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute derived pitcher features like proj_k_per_9."""
+    df = df.copy()
+    if "proj_so" in df.columns and "proj_ip" in df.columns:
+        ip = df["proj_ip"].fillna(0)
+        df["proj_k_per_9"] = ((df["proj_so"].fillna(0) / ip) * 9).where(ip > 0, 0)
+    elif "proj_k_per_9" not in df.columns:
+        df["proj_k_per_9"] = 0
+    return df
+
+
 def train_and_predict() -> dict:
-    """Train Ridge regression on historical FA data, write predictions to DB.
+    """Train Ridge regression on draft data, write predictions to DB.
 
     Returns dict with r2, matched_count, feature_weights.
     """
@@ -29,7 +41,10 @@ def train_and_predict() -> dict:
 
     if hist.empty:
         conn.close()
-        raise ValueError("No historical price data available. Upload FA auction CSVs first.")
+        raise ValueError("No draft data available. Place draft_results.csv in the data directory.")
+
+    # Derive pitcher features
+    pitchers = _derive_pitcher_features(pitchers)
 
     # Add is_closer feature for pitchers
     if "proj_sv" in pitchers.columns:
@@ -135,8 +150,8 @@ def _match_players(
     # Normalize names for matching
     hist_copy = hist.copy()
     players_copy = players.copy()
-    hist_copy["_match_name"] = hist_copy["player_name"].str.strip().str.lower()
-    players_copy["_match_name"] = players_copy["name"].str.strip().str.lower()
+    hist_copy["_match_name"] = hist_copy["player_name"].apply(normalize_name).str.lower()
+    players_copy["_match_name"] = players_copy["name"].apply(normalize_name).str.lower()
 
     # Use most recent season price per player
     hist_copy = hist_copy.sort_values("season", ascending=False).drop_duplicates("_match_name")
@@ -170,8 +185,9 @@ def _predict_table(
 
     df = players.copy()
 
-    # Add is_closer for pitchers
+    # Derive features and add is_closer for pitchers
     if table == "pitchers":
+        df = _derive_pitcher_features(df)
         if "proj_sv" in df.columns:
             df["is_closer"] = (df["proj_sv"].fillna(0) > 10).astype(int)
         else:

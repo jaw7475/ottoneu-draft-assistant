@@ -7,7 +7,6 @@ from db.queries import (
     get_historical_prices,
     get_valuation_config,
     recalculate_values,
-    save_historical_prices,
     set_valuation_config,
     update_from_position_csv,
 )
@@ -99,44 +98,15 @@ def _render_position_upload():
 
 
 def _render_historical_upload():
-    """Historical FA auction data upload and model training."""
-    st.subheader("Historical FA Auction Data")
-    st.write("Upload Ottoneu FA auction export CSVs to train the price prediction model.")
+    """Draft data display and model training."""
+    st.subheader("Draft Data")
+    st.write("Draft data is loaded automatically from `draft_results.csv` during database init.")
 
-    uploaded_files = st.file_uploader(
-        "FA auction CSV files",
-        type=["csv"],
-        accept_multiple_files=True,
-        key="historical_upload",
-    )
-
-    if uploaded_files:
-        season = st.number_input(
-            "Season year for uploaded data",
-            min_value=2020, max_value=2030, value=2025,
-            key="historical_season",
-        )
-
-        if st.button("Load Auction Data"):
-            from valuation.historical import parse_auction_csv
-
-            total = 0
-            for f in uploaded_files:
-                try:
-                    rows = parse_auction_csv(f, season)
-                    count = save_historical_prices(rows)
-                    total += count
-                    st.write(f"  {f.name}: {count} rows loaded")
-                except Exception as e:
-                    st.error(f"Error loading {f.name}: {e}")
-            if total > 0:
-                st.success(f"Loaded {total} total historical auction records.")
-
-    # Show existing historical data count
+    # Show existing draft data count
     hist = get_historical_prices()
     if not hist.empty:
         seasons = hist["season"].unique()
-        st.write(f"Historical data loaded: {len(hist)} records across seasons {sorted(seasons.tolist())}")
+        st.write(f"Draft data loaded: {len(hist)} records across seasons {sorted(seasons.tolist())}")
 
         if st.button("Train Price Model"):
             from valuation.price_model import train_and_predict
@@ -160,7 +130,7 @@ def _render_historical_upload():
                 except Exception as e:
                     st.error(f"Error training model: {e}")
     else:
-        st.info("No historical auction data loaded. Upload CSVs above to enable price prediction.")
+        st.info("No draft data loaded. Place `draft_results.csv` in the data directory and reload.")
 
 
 def _render_reload():

@@ -1,6 +1,45 @@
-"""Parse Ottoneu FA auction export CSVs."""
+"""Parse draft data CSVs for price model training."""
 
 import pandas as pd
+
+from data.load import normalize_name
+
+
+def load_draft_results(path) -> list[dict]:
+    """Load a draft_results.csv and return rows for the historical_prices table.
+
+    Expected columns: Year, Team Name, PlayerID, Player Name, Price
+    """
+    df = pd.read_csv(path, encoding="utf-8-sig")
+
+    # Normalize column names
+    df.columns = [c.strip() for c in df.columns]
+
+    rows = []
+    for _, row in df.iterrows():
+        name = str(row["Player Name"]).strip()
+        if not name or name.lower() == "nan":
+            continue
+
+        name = normalize_name(name)
+
+        price_val = row["Price"]
+        if pd.isna(price_val):
+            price = None
+        else:
+            price_str = str(price_val).strip().lstrip("$").strip()
+            try:
+                price = int(float(price_str))
+            except (ValueError, TypeError):
+                price = None
+
+        rows.append({
+            "player_name": name,
+            "season": int(row["Year"]),
+            "price": price,
+        })
+
+    return rows
 
 
 def parse_auction_csv(file, season: int) -> list[dict]:
@@ -32,6 +71,8 @@ def parse_auction_csv(file, season: int) -> list[dict]:
         name = str(row[name_col]).strip()
         if not name or name.lower() == "nan":
             continue
+
+        name = normalize_name(name)
 
         price_val = row[price_col]
         if pd.isna(price_val):
