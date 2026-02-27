@@ -92,6 +92,8 @@ def draft_player(
     conn.commit()
     conn.close()
 
+    sync_roster_actual_salary(player_name, draft_price)
+
 
 def undo_last_draft() -> str | None:
     """Undo the most recent draft action. Returns the player name or None."""
@@ -242,6 +244,46 @@ def get_historical_prices() -> pd.DataFrame:
     df = pd.read_sql("SELECT * FROM historical_prices ORDER BY season, player_name", conn)
     conn.close()
     return df
+
+
+def get_roster_plan() -> pd.DataFrame:
+    """Get all roster plan slots in display order."""
+    conn = get_connection()
+    # Order: C, 1B, 2B, SS, 3B, MI, OF, Util, SP, RP, BE
+    order = "CASE slot_position " + " ".join(
+        f"WHEN '{pos}' THEN {i}" for i, pos in enumerate(
+            ["C", "1B", "2B", "SS", "3B", "MI", "OF", "Util", "SP", "RP", "BE"]
+        )
+    ) + " END"
+    df = pd.read_sql(
+        f"SELECT * FROM roster_plan ORDER BY {order}, slot_number",
+        conn,
+    )
+    conn.close()
+    return df
+
+
+def update_roster_plan(updates: list[dict]) -> None:
+    """Batch-update roster plan slots. Each dict has id, player_name, budgeted_salary, actual_salary."""
+    conn = get_connection()
+    for row in updates:
+        conn.execute(
+            "UPDATE roster_plan SET player_name = ?, budgeted_salary = ?, actual_salary = ? WHERE id = ?",
+            (row["player_name"], row["budgeted_salary"], row["actual_salary"], row["id"]),
+        )
+    conn.commit()
+    conn.close()
+
+
+def sync_roster_actual_salary(player_name: str, draft_price: int) -> None:
+    """If a drafted player is in the roster plan, update their actual salary."""
+    conn = get_connection()
+    conn.execute(
+        "UPDATE roster_plan SET actual_salary = ? WHERE player_name = ?",
+        (draft_price, player_name),
+    )
+    conn.commit()
+    conn.close()
 
 
 def recalculate_values() -> None:
