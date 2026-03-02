@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 db/init_db.py)",
+      "Bash(python3 -c *)",
+      "Bash(git push*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git diff*)",
+      "Bash(git log*)"
+    ]
+  }
+}
