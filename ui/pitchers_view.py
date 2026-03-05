@@ -6,14 +6,14 @@ from db.queries import draft_player, get_teams, query_players
 
 # Default columns to display (key stats)
 DEFAULT_COLUMNS = [
-    "name", "ottoneu_team", "salary", "position", "fpts",
+    "avail", "name", "ottoneu_team", "salary", "position", "fpts",
     "dollar_value", "surplus_value",
     "ip", "era", "fip", "xera", "k_per_9", "bb_per_9",
     "sv", "hld", "war", "stuff_plus", "pitching_plus",
-    "draft_price",
 ]
 
 COLUMN_CONFIG = {
+    "avail": st.column_config.CheckboxColumn("Avail", disabled=True),
     "dollar_value": st.column_config.NumberColumn("$Value", format="$%d"),
     "surplus_value": st.column_config.NumberColumn("Surplus", format="%+d"),
     "predicted_price": st.column_config.NumberColumn("Pred$", format="$%d"),
@@ -33,20 +33,39 @@ def render_pitchers(filters: dict):
         stat_filters=filters["stat_filters"],
     )
 
+    # Compute availability indicator
+    df["avail"] = (df["salary"].fillna(0) == 0) & (df["is_drafted"] == 0)
+
+    # Merge draft_price into salary for drafted players
+    drafted_mask = df["is_drafted"] == 1
+    df.loc[drafted_mask, "salary"] = df.loc[drafted_mask, "draft_price"]
+
     # Select display columns
     all_cols = df.columns.tolist()
+    hidden = {"is_drafted", "draft_price", "avail"}
     display_cols = [c for c in DEFAULT_COLUMNS if c in all_cols]
 
     with st.expander("Column selection"):
-        extra_cols = [c for c in all_cols if c not in display_cols and c != "is_drafted"]
+        extra_cols = [c for c in all_cols if c not in display_cols and c not in hidden]
         selected_extra = st.multiselect("Additional columns", extra_cols, key="pitcher_extra_cols")
         display_cols = display_cols + selected_extra
 
     display_df = df[display_cols].copy()
 
+    # Style salary cells with blue background for drafted players
+    def highlight_drafted_salary(col):
+        styles = [""] * len(col)
+        if col.name == "salary":
+            for i, idx in enumerate(col.index):
+                if df.loc[idx, "is_drafted"] == 1:
+                    styles[i] = "background-color: #cce5ff"
+        return styles
+
+    styled = display_df.style.apply(highlight_drafted_salary)
+
     col_cfg = {k: v for k, v in COLUMN_CONFIG.items() if k in display_cols}
     st.dataframe(
-        display_df,
+        styled,
         use_container_width=True,
         hide_index=True,
         height=600,
