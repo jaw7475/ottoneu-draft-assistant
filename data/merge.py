@@ -78,22 +78,30 @@ def _merge_position_universe(df: pd.DataFrame, pos_df: pd.DataFrame) -> pd.DataF
     return merged
 
 
-def _prune_irrelevant_players(df: pd.DataFrame, threshold: float = OWNERSHIP_PRUNE_THRESHOLD) -> pd.DataFrame:
-    """Drop players with no projections, no historical stats, and low ownership.
+def _prune_irrelevant_players(
+    df: pd.DataFrame,
+    threshold: float = OWNERSHIP_PRUNE_THRESHOLD,
+    playing_time_col: str | None = None,
+) -> pd.DataFrame:
+    """Drop players with no projections, no meaningful stats, and low ownership.
 
     A player is pruned if ALL of:
     - proj_fpts is NaN (no projections)
-    - fpts is NaN (no historical stats)
+    - fpts is NaN or 0 (no historical production)
+    - playing_time_col (e.g. 'pa' or 'ip') is 0 or NaN, if specified
     - ownership_pct is NaN or <= threshold
     """
-    if "ownership_pct" not in df.columns:
-        return df
+    no_proj = df["proj_fpts"].isna() if "proj_fpts" in df.columns else pd.Series(True, index=df.index)
+    no_hist = (df["fpts"].isna() | (df["fpts"] == 0)) if "fpts" in df.columns else pd.Series(True, index=df.index)
+    low_own = pd.Series(True, index=df.index)
+    if "ownership_pct" in df.columns:
+        low_own = df["ownership_pct"].isna() | (df["ownership_pct"] <= threshold)
 
-    no_proj = df.get("proj_fpts", pd.Series(dtype=float)).isna() if "proj_fpts" in df.columns else pd.Series(True, index=df.index)
-    no_hist = df["fpts"].isna() if "fpts" in df.columns else pd.Series(True, index=df.index)
-    low_own = df["ownership_pct"].isna() | (df["ownership_pct"] <= threshold)
+    no_playing_time = pd.Series(True, index=df.index)
+    if playing_time_col and playing_time_col in df.columns:
+        no_playing_time = df[playing_time_col].isna() | (df[playing_time_col] <= 0)
 
-    to_drop = no_proj & no_hist & low_own
+    to_drop = no_proj & no_hist & no_playing_time & low_own
     return df[~to_drop].reset_index(drop=True)
 
 
@@ -112,7 +120,7 @@ def merge_hitters(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
         df = _merge_position_universe(df, files["hitters_positions"])
 
     # Prune irrelevant players
-    df = _prune_irrelevant_players(df)
+    df = _prune_irrelevant_players(df, playing_time_col="pa")
 
     # Initialize draft-state columns
     df["is_drafted"] = False
@@ -143,7 +151,7 @@ def merge_pitchers(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
         df = _merge_position_universe(df, files["pitchers_positions"])
 
     # Prune irrelevant players
-    df = _prune_irrelevant_players(df)
+    df = _prune_irrelevant_players(df, playing_time_col="ip")
 
     # Initialize draft-state columns
     df["is_drafted"] = False
