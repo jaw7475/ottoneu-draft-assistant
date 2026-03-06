@@ -1,13 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python3 db/init_db.py)",
-      "Bash(python3 -c *)",
+      "Bash(python3 *)",
+      "Bash(pip install *)",
+      "Bash(streamlit run *)",
+      "Bash(git status*)",
       "Bash(git push*)",
       "Bash(git add*)",
       "Bash(git commit*)",
       "Bash(git diff*)",
-      "Bash(git log*)"
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(git checkout*)",
+      "Bash(git stash*)",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep"
     ]
   }
 }
