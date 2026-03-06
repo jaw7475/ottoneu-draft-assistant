@@ -40,6 +40,7 @@ def render_pitchers(filters: dict):
         search=filters["search"],
         positions=filters["positions"],
         show_drafted=filters["show_drafted"],
+        show_kept=filters["show_kept"],
         sort_by=filters["sort_by"],
         sort_asc=filters["sort_asc"],
         stat_filters=filters["stat_filters"],
@@ -54,7 +55,7 @@ def render_pitchers(filters: dict):
 
     # Select display columns
     all_cols = df.columns.tolist()
-    hidden = {"is_drafted", "draft_price", "avail"}
+    hidden = {"is_drafted", "draft_price", "is_keeper", "avail"}
     display_cols = [c for c in DEFAULT_COLUMNS if c in all_cols]
 
     with st.expander("Column selection"):

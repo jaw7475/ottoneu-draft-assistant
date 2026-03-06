@@ -12,6 +12,7 @@ def query_players(
     search: str = "",
     positions: list[str] | None = None,
     show_drafted: bool = False,
+    show_kept: bool = True,
     sort_by: str = "fpts",
     sort_asc: bool = False,
     stat_filters: dict[str, tuple[float | None, float | None]] | None = None,
@@ -23,6 +24,9 @@ def query_players(
 
     if not show_drafted:
         conditions.append("is_drafted = 0")
+
+    if not show_kept:
+        conditions.append("is_keeper = 0")
 
     if search:
         conditions.append("name LIKE ?")
@@ -78,8 +82,8 @@ def draft_player(
 
     # Update player
     conn.execute(
-        f"UPDATE {table} SET is_drafted = 1, draft_price = ? WHERE name = ?",
-        (draft_price, player_name),
+        f"UPDATE {table} SET is_drafted = 1, draft_price = ?, ottoneu_team = ? WHERE name = ?",
+        (draft_price, drafting_team or None, player_name),
     )
 
     # Log the draft
@@ -112,7 +116,7 @@ def undo_last_draft() -> str | None:
     table = "hitters" if player_type == "hitter" else "pitchers"
 
     conn.execute(
-        f"UPDATE {table} SET is_drafted = 0, draft_price = NULL WHERE name = ?",
+        f"UPDATE {table} SET is_drafted = 0, draft_price = NULL, ottoneu_team = NULL WHERE name = ?",
         (player_name,),
     )
     conn.execute("DELETE FROM draft_log WHERE id = ?", (last["id"],))

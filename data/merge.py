@@ -125,6 +125,7 @@ def merge_hitters(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # Initialize draft-state columns
     df["is_drafted"] = False
     df["draft_price"] = pd.NA
+    df["is_keeper"] = df["ottoneu_team"].notna() & (df["ottoneu_team"] != "")
     if "position" not in df.columns:
         df["position"] = pd.NA
     if "ownership_pct" not in df.columns:
@@ -156,6 +157,7 @@ def merge_pitchers(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # Initialize draft-state columns
     df["is_drafted"] = False
     df["draft_price"] = pd.NA
+    df["is_keeper"] = df["ottoneu_team"].notna() & (df["ottoneu_team"] != "")
     if "position" not in df.columns:
         df["position"] = pd.NA
     if "ownership_pct" not in df.columns:
