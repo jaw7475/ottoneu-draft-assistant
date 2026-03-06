@@ -67,12 +67,13 @@ def _merge_position_universe(df: pd.DataFrame, pos_df: pd.DataFrame) -> pd.DataF
         suffixes=("", "_pos"),
     )
 
-    # For overlapping columns, prefer position CSV values where available
+    # For overlapping columns, prefer position CSV values for all players
+    # present in the position CSV (even if the value is NA)
+    in_pos = merged["name"].isin(pos_df["name"])
     for col in overlap_cols:
         pos_col = f"{col}_pos"
         if pos_col in merged.columns:
-            mask = merged[pos_col].notna()
-            merged.loc[mask, col] = merged.loc[mask, pos_col]
+            merged.loc[in_pos, col] = merged.loc[in_pos, pos_col]
             merged = merged.drop(columns=[pos_col])
 
     return merged
@@ -126,8 +127,11 @@ def merge_hitters(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
     df["is_drafted"] = False
     df["draft_price"] = pd.NA
     df["is_keeper"] = df["ottoneu_team"].notna() & ~df["ottoneu_team"].isin(["", "FA", "Free Agent"])
+    df["ottoneu_team"] = df["ottoneu_team"].where(~df["ottoneu_team"].isin(["", "FA"]), "Free Agent")
+    df["ottoneu_team"] = df["ottoneu_team"].fillna("Free Agent")
     if "position" not in df.columns:
         df["position"] = pd.NA
+    df["position"] = df["position"].fillna("Util")
     if "ownership_pct" not in df.columns:
         df["ownership_pct"] = pd.NA
     df["dollar_value"] = pd.NA
@@ -158,8 +162,11 @@ def merge_pitchers(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
     df["is_drafted"] = False
     df["draft_price"] = pd.NA
     df["is_keeper"] = df["ottoneu_team"].notna() & ~df["ottoneu_team"].isin(["", "FA", "Free Agent"])
+    df["ottoneu_team"] = df["ottoneu_team"].where(~df["ottoneu_team"].isin(["", "FA"]), "Free Agent")
+    df["ottoneu_team"] = df["ottoneu_team"].fillna("Free Agent")
     if "position" not in df.columns:
         df["position"] = pd.NA
+    df["position"] = df["position"].fillna("RP")
     if "ownership_pct" not in df.columns:
         df["ownership_pct"] = pd.NA
     df["dollar_value"] = pd.NA
