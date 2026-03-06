@@ -30,9 +30,12 @@ def _draft_pitcher_dialog(player_name: str):
     """Dialog overlay for drafting a pitcher."""
     st.markdown(f"**{player_name}**")
     teams = get_teams("pitchers")
-    price = st.number_input("Draft price ($)", min_value=1, value=1, step=1, key="draft_pitcher_price")
+    price = st.number_input("Draft price ($)", min_value=1, value=None, step=1, key="draft_pitcher_price")
     team = st.selectbox("Drafting team", [""] + teams, key="draft_pitcher_team")
     if st.button("Confirm Draft", key="draft_pitcher_confirm"):
+        if price is None:
+            st.error("Please enter a draft price.")
+            return
         draft_player("pitchers", player_name, price, team)
         del st.session_state["pitchers_table"]
         st.rerun()
