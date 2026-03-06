@@ -94,5 +94,10 @@ def render_pitchers(filters: dict):
     if selected_rows:
         idx = selected_rows[0]
         if idx < len(df):
-            player_name = df.iloc[idx]["name"]
-            _draft_pitcher_dialog(player_name)
+            player = df.iloc[idx]
+            if player["is_drafted"] == 1:
+                st.warning(f"{player['name']} has already been drafted.")
+            elif player["salary"] and player["salary"] > 0:
+                st.warning(f"{player['name']} is already owned (${int(player['salary'])}).")
+            else:
+                _draft_pitcher_dialog(player["name"])
