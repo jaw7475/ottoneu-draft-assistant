@@ -35,6 +35,10 @@ python3 db/init_db.py
 streamlit run app.py
 ```
 
+## Shell Commands
+
+- The working directory is already the project root. Do **not** prefix shell commands with `cd "/Users/jakeweinberg/Documents/Draft Assistant/ottoneu-draft-assistant" &&` — just run commands directly (e.g., `git status`, not `cd ... && git status`). This avoids redundant permission prompts.
+
 ## Key Conventions
 
 - Player `name` is the natural key across all source files
