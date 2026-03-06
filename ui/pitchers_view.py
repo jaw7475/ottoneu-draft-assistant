@@ -13,7 +13,7 @@ DEFAULT_COLUMNS = [
 ]
 
 COLUMN_CONFIG = {
-    "avail": st.column_config.CheckboxColumn("Avail", disabled=True),
+    "avail": st.column_config.TextColumn("Avail", width="small"),
     "dollar_value": st.column_config.NumberColumn("$Value", format="$%d"),
     "surplus_value": st.column_config.NumberColumn("Surplus", format="%+d"),
     "predicted_price": st.column_config.NumberColumn("Pred$", format="$%d"),
@@ -46,8 +46,14 @@ def render_pitchers(filters: dict):
         stat_filters=filters["stat_filters"],
     )
 
-    # Compute availability indicator
-    df["avail"] = (df["salary"].fillna(0) == 0) & (df["is_drafted"] == 0)
+    # Compute availability indicator (three states: keeper, drafted, available)
+    def _avail_label(row):
+        if row["is_drafted"] == 1:
+            return "✗"
+        if row["is_keeper"] == 1:
+            return "✗"
+        return "✓"
+    df["avail"] = df.apply(_avail_label, axis=1)
 
     # Merge draft_price into salary for drafted players
     drafted_mask = df["is_drafted"] == 1
@@ -65,16 +71,24 @@ def render_pitchers(filters: dict):
 
     display_df = df[display_cols].copy()
 
-    # Style salary cells with blue background for drafted players
-    def highlight_drafted_salary(col):
+    # Style salary and avail columns
+    def highlight_cells(col):
         styles = [""] * len(col)
         if col.name == "salary":
             for i, idx in enumerate(col.index):
                 if df.loc[idx, "is_drafted"] == 1:
                     styles[i] = "background-color: #cce5ff"
+        elif col.name == "avail":
+            for i, idx in enumerate(col.index):
+                if df.loc[idx, "is_drafted"] == 1:
+                    styles[i] = "color: #dc3545"
+                elif df.loc[idx, "is_keeper"] == 1:
+                    styles[i] = "color: #999999"
+                else:
+                    styles[i] = "color: #28a745; background-color: #d4edda"
         return styles
 
-    styled = display_df.style.apply(highlight_drafted_salary)
+    styled = display_df.style.apply(highlight_cells)
 
     col_cfg = {k: v for k, v in COLUMN_CONFIG.items() if k in display_cols}
     st.dataframe(
