@@ -123,6 +123,10 @@ def merge_hitters(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # Prune irrelevant players
     df = _prune_irrelevant_players(df, playing_time_col="pa")
 
+    # Merge expert rankings if available
+    if "hitters_expert_rankings" in files:
+        df = df.merge(files["hitters_expert_rankings"], on="name", how="left")
+
     # Initialize draft-state columns
     df["is_drafted"] = False
     df["draft_price"] = pd.NA
@@ -157,6 +161,10 @@ def merge_pitchers(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
     # Prune irrelevant players
     df = _prune_irrelevant_players(df, playing_time_col="ip")
+
+    # Merge expert rankings if available
+    if "pitchers_expert_rankings" in files:
+        df = df.merge(files["pitchers_expert_rankings"], on="name", how="left")
 
     # Initialize draft-state columns
     df["is_drafted"] = False

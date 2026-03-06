@@ -250,6 +250,81 @@ def load_projections(filename: str) -> pd.DataFrame:
     return df
 
 
+def load_expert_rankings():
+    """Load expert rankings from Excel and return (hitter_rankings, pitcher_rankings).
+
+    Each DataFrame has columns: name, expert1_rank, expert1_tier, expert2_rank, expert2_tier.
+    When a player appears in multiple position tabs, the best (lowest) rank is kept.
+    """
+    path = DATA_DIR / "expert_rankings.xlsx"
+    if not path.exists():
+        return pd.DataFrame(), pd.DataFrame()
+
+    HITTER_TABS_E1 = ["C", "1B", "MI", "3B", "OF"]
+    HITTER_TABS_E2 = ["C 2", "1B 2", "MI 2", "3B 2", "OF 2"]
+    PITCHER_TABS_E1 = ["SP", "RP"]
+    PITCHER_TABS_E2 = ["SP 2", "RP 2"]
+
+    def _read_tabs(tabs):
+        """Read and concat rankings from a list of sheet tabs."""
+        frames = []
+        for tab in tabs:
+            try:
+                df = pd.read_excel(path, sheet_name=tab, engine="openpyxl")
+            except (ValueError, KeyError):
+                continue
+            # Keep only Tier, Rank, Player columns
+            if "Player" not in df.columns:
+                continue
+            cols = [c for c in ["Tier", "Rank", "Player"] if c in df.columns]
+            df = df[cols].dropna(subset=["Player"])
+            df = df.rename(columns={"Player": "name"})
+            df["name"] = df["name"].apply(normalize_name)
+            if "Rank" in df.columns:
+                df["Rank"] = pd.to_numeric(df["Rank"], errors="coerce")
+            if "Tier" in df.columns:
+                df["Tier"] = pd.to_numeric(df["Tier"], errors="coerce")
+            frames.append(df)
+        if not frames:
+            return pd.DataFrame()
+        return pd.concat(frames, ignore_index=True)
+
+    def _best_rank(df, rank_col, tier_col):
+        """Keep the best (lowest) rank per player, with associated tier."""
+        if df.empty or "Rank" not in df.columns:
+            return pd.DataFrame(columns=["name", rank_col, tier_col])
+        df = df.dropna(subset=["Rank"])
+        best = df.loc[df.groupby("name")["Rank"].idxmin()][["name", "Rank", "Tier"]].copy()
+        best = best.rename(columns={"Rank": rank_col, "Tier": tier_col})
+        return best.reset_index(drop=True)
+
+    # Hitters
+    h_e1 = _best_rank(_read_tabs(HITTER_TABS_E1), "expert1_rank", "expert1_tier")
+    h_e2 = _best_rank(_read_tabs(HITTER_TABS_E2), "expert2_rank", "expert2_tier")
+    if h_e1.empty and h_e2.empty:
+        hitter_rankings = pd.DataFrame()
+    elif h_e1.empty:
+        hitter_rankings = h_e2
+    elif h_e2.empty:
+        hitter_rankings = h_e1
+    else:
+        hitter_rankings = h_e1.merge(h_e2, on="name", how="outer")
+
+    # Pitchers
+    p_e1 = _best_rank(_read_tabs(PITCHER_TABS_E1), "expert1_rank", "expert1_tier")
+    p_e2 = _best_rank(_read_tabs(PITCHER_TABS_E2), "expert2_rank", "expert2_tier")
+    if p_e1.empty and p_e2.empty:
+        pitcher_rankings = pd.DataFrame()
+    elif p_e1.empty:
+        pitcher_rankings = p_e2
+    elif p_e2.empty:
+        pitcher_rankings = p_e1
+    else:
+        pitcher_rankings = p_e1.merge(p_e2, on="name", how="outer")
+
+    return hitter_rankings, pitcher_rankings
+
+
 def load_all():
     """Load all source files and return them as a dict."""
     result = {
@@ -279,5 +354,12 @@ def load_all():
         result["hitters_positions"] = load_position_universe(hitter_pos)
     if pitcher_pos.exists():
         result["pitchers_positions"] = load_position_universe(pitcher_pos)
+
+    # Load expert rankings if available
+    hitter_rankings, pitcher_rankings = load_expert_rankings()
+    if not hitter_rankings.empty:
+        result["hitters_expert_rankings"] = hitter_rankings
+    if not pitcher_rankings.empty:
+        result["pitchers_expert_rankings"] = pitcher_rankings
 
     return result

@@ -25,11 +25,9 @@ def render_sidebar(active_tab: str, available_columns: list[str]) -> dict:
         show_kept = st.checkbox("Show kept players", value=True, key="show_kept")
         show_drafted = st.checkbox("Show drafted players", key="show_drafted")
 
-        # Position filter
-        if active_tab == "Hitters":
-            positions = st.multiselect("Position", HITTER_POSITIONS, key="pos_filter")
-        else:
-            positions = st.multiselect("Position", PITCHER_POSITIONS, key="pos_filter")
+        # Position filter (separate keys per tab to avoid stale widget state)
+        hitter_positions = st.multiselect("Hitter positions", HITTER_POSITIONS, key="hitter_pos_filter")
+        pitcher_positions = st.multiselect("Pitcher positions", PITCHER_POSITIONS, key="pitcher_pos_filter")
 
         # Sort controls
         st.subheader("Sort")
@@ -54,7 +52,8 @@ def render_sidebar(active_tab: str, available_columns: list[str]) -> dict:
 
     return {
         "search": search,
-        "positions": positions if positions else None,
+        "hitter_positions": hitter_positions if hitter_positions else None,
+        "pitcher_positions": pitcher_positions if pitcher_positions else None,
         "show_kept": show_kept,
         "show_drafted": show_drafted,
         "sort_by": sort_by,

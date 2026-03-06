@@ -10,7 +10,6 @@ import streamlit as st
 
 from db.connection import db_exists
 from db.queries import get_column_names
-from ui.draft_log import render_draft_log
 from ui.hitters_view import render_hitters
 from ui.pitchers_view import render_pitchers
 from ui.roster_view import render_roster
@@ -42,9 +41,12 @@ columns = get_column_names(table)
 filters = render_sidebar(active, columns)
 
 # Tabs
-tab_hitters, tab_pitchers, tab_roster, tab_log, tab_settings = st.tabs(
-    ["Hitters", "Pitchers", "Roster", "Draft Log", "Settings"]
+tab_roster, tab_hitters, tab_pitchers, tab_settings = st.tabs(
+    ["Roster", "Hitters", "Pitchers", "Settings"]
 )
+
+with tab_roster:
+    render_roster()
 
 with tab_hitters:
     st.session_state.active_tab = "Hitters"
@@ -53,12 +55,6 @@ with tab_hitters:
 with tab_pitchers:
     st.session_state.active_tab = "Pitchers"
     render_pitchers(filters)
-
-with tab_roster:
-    render_roster()
-
-with tab_log:
-    render_draft_log()
 
 with tab_settings:
     render_settings()

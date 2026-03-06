@@ -7,7 +7,7 @@ from db.queries import draft_player, get_teams, query_players
 # Default columns to display (key stats)
 DEFAULT_COLUMNS = [
     "avail", "name", "ottoneu_team", "salary", "position", "fpts",
-    "dollar_value", "surplus_value",
+    "dollar_value", "surplus_value", "expert1_rank", "expert2_rank",
     "pa", "avg", "obp", "slg", "ops", "woba", "wrc_plus",
     "hr", "sb", "bb_pct", "k_pct", "iso", "babip",
 ]
@@ -18,6 +18,10 @@ COLUMN_CONFIG = {
     "surplus_value": st.column_config.NumberColumn("Surplus", format="%+d"),
     "predicted_price": st.column_config.NumberColumn("Pred$", format="$%d"),
     "ownership_pct": st.column_config.NumberColumn("Own%", format="%.1f%%"),
+    "expert1_rank": st.column_config.NumberColumn("E1 Rank", format="%d"),
+    "expert1_tier": st.column_config.NumberColumn("E1 Tier", format="%d"),
+    "expert2_rank": st.column_config.NumberColumn("E2 Rank", format="%d"),
+    "expert2_tier": st.column_config.NumberColumn("E2 Tier", format="%d"),
 }
 
 
@@ -39,7 +43,7 @@ def render_hitters(filters: dict):
     df = query_players(
         table="hitters",
         search=filters["search"],
-        positions=filters["positions"],
+        positions=filters["hitter_positions"],
         show_drafted=filters["show_drafted"],
         show_kept=filters["show_kept"],
         sort_by=filters["sort_by"],
