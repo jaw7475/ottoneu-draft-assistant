@@ -22,7 +22,6 @@ def render_sidebar(active_tab: str, available_columns: list[str]) -> dict:
         st.header("Filters")
 
         search = st.text_input("Search player", key="search")
-        show_drafted = st.checkbox("Show drafted players", key="show_drafted")
 
         # Position filter
         if active_tab == "Hitters":
@@ -54,7 +53,7 @@ def render_sidebar(active_tab: str, available_columns: list[str]) -> dict:
     return {
         "search": search,
         "positions": positions if positions else None,
-        "show_drafted": show_drafted,
+        "show_drafted": True,
         "sort_by": sort_by,
         "sort_asc": sort_asc,
         "stat_filters": stat_filters if stat_filters else None,
