@@ -21,6 +21,18 @@ COLUMN_CONFIG = {
 }
 
 
+@st.dialog("Draft Player")
+def _draft_hitter_dialog(player_name: str):
+    """Dialog overlay for drafting a hitter."""
+    st.markdown(f"**{player_name}**")
+    teams = get_teams("hitters")
+    price = st.number_input("Draft price ($)", min_value=1, value=1, step=1, key="draft_hitter_price")
+    team = st.selectbox("Drafting team", [""] + teams, key="draft_hitter_team")
+    if st.button("Confirm Draft", key="draft_hitter_confirm"):
+        draft_player("hitters", player_name, price, team)
+        st.rerun()
+
+
 def render_hitters(filters: dict):
     """Render the hitters tab."""
     df = query_players(
@@ -75,24 +87,12 @@ def render_hitters(filters: dict):
         column_config=col_cfg,
     )
 
-    # Draft action form
+    # Draft action dialog
     selection = st.session_state.get("hitters_table", {})
     selected_rows = selection.get("selection", {}).get("rows", [])
 
     if selected_rows:
         idx = selected_rows[0]
         if idx < len(df):
-            player = df.iloc[idx]
-            st.subheader(f"Draft: {player['name']}")
-
-            teams = get_teams("hitters")
-            with st.form("draft_hitter_form"):
-                col1, col2 = st.columns(2)
-                with col1:
-                    price = st.number_input("Draft price ($)", min_value=1, value=1, step=1)
-                with col2:
-                    team = st.selectbox("Drafting team", [""] + teams)
-
-                if st.form_submit_button("Confirm Draft"):
-                    draft_player("hitters", player["name"], price, team)
-                    st.rerun()
+            player_name = df.iloc[idx]["name"]
+            _draft_hitter_dialog(player_name)
