@@ -30,6 +30,7 @@ def _draft_pitcher_dialog(player_name: str):
     team = st.selectbox("Drafting team", [""] + teams, key="draft_pitcher_team")
     if st.button("Confirm Draft", key="draft_pitcher_confirm"):
         draft_player("pitchers", player_name, price, team)
+        del st.session_state["pitchers_table"]
         st.rerun()
 
 
