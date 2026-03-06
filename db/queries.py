@@ -144,7 +144,7 @@ def get_teams(table: str) -> list[str]:
     """Get unique team names from a table."""
     conn = get_connection()
     rows = conn.execute(
-        f"SELECT DISTINCT ottoneu_team FROM {table} WHERE ottoneu_team IS NOT NULL ORDER BY ottoneu_team"
+        f"SELECT DISTINCT ottoneu_team FROM {table} WHERE ottoneu_team IS NOT NULL AND ottoneu_team != 'Free Agent' ORDER BY ottoneu_team"
     ).fetchall()
     conn.close()
     return [r["ottoneu_team"] for r in rows]
