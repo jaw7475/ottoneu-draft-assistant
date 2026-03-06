@@ -13,7 +13,7 @@ DEFAULT_COLUMNS = [
 ]
 
 COLUMN_CONFIG = {
-    "avail": st.column_config.TextColumn("Avail", width="small"),
+    "avail": st.column_config.TextColumn("", width=47),
     "dollar_value": st.column_config.NumberColumn("$Value", format="$%d"),
     "surplus_value": st.column_config.NumberColumn("Surplus", format="%+d"),
     "predicted_price": st.column_config.NumberColumn("Pred$", format="$%d"),
@@ -50,10 +50,10 @@ def render_hitters(filters: dict):
     # Compute availability indicator (three states: keeper, drafted, available)
     def _avail_label(row):
         if row["is_drafted"] == 1:
-            return "✗"
+            return "    ✗"
         if row["is_keeper"] == 1:
-            return "✗"
-        return "✓"
+            return "    ✗"
+        return "    ✓"
     df["avail"] = df.apply(_avail_label, axis=1)
 
     # Merge draft_price into salary for drafted players
