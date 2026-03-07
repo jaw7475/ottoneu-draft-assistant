@@ -280,6 +280,10 @@ def load_expert_rankings():
                 df = pd.read_excel(path, sheet_name=tab, engine="openpyxl")
             except (ValueError, KeyError):
                 continue
+            # Normalize column name variants (e.g. "TIer" -> "Tier")
+            df.columns = [c.strip() for c in df.columns]
+            col_map = {c: c.capitalize() for c in df.columns if c.lower() in ("tier", "rank", "player")}
+            df = df.rename(columns=col_map)
             # Keep only Tier, Rank, Player columns
             if "Player" not in df.columns:
                 continue
