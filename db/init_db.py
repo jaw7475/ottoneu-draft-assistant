@@ -47,6 +47,16 @@ def init_db():
     pitchers = merge_pitchers(files)
     print(f"  Merged pitchers: {len(pitchers)} rows, {len(pitchers.columns)} columns")
 
+    # Preserve player tags across rebuilds
+    saved_tags = []
+    if DB_PATH.exists():
+        conn = get_connection()
+        try:
+            saved_tags = conn.execute("SELECT player_name, tag FROM player_tags").fetchall()
+        except Exception:
+            pass
+        conn.close()
+
     # Remove old DB if it exists
     if DB_PATH.exists():
         DB_PATH.unlink()
@@ -56,6 +66,16 @@ def init_db():
     conn = get_connection()
     create_tables(conn)
     _seed_default_config(conn)
+
+    # Restore saved tags
+    if saved_tags:
+        for row in saved_tags:
+            conn.execute(
+                "INSERT OR IGNORE INTO player_tags (player_name, tag) VALUES (?, ?)",
+                (row["player_name"], row["tag"]),
+            )
+        conn.commit()
+        print(f"  Restored {len(saved_tags)} player tags")
 
     # Calculate dollar values if projections are available
     config = _load_config(conn)

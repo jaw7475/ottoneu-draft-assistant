@@ -21,6 +21,13 @@ def render_sidebar(active_tab: str, available_columns: list[str]) -> dict:
     with st.sidebar:
         st.header("Filters")
 
+        click_mode = st.radio(
+            "Row click mode",
+            ["Draft", "Tag"],
+            horizontal=True,
+            key="click_mode",
+        )
+
         search = st.text_input("Search player", key="search")
         show_kept = st.checkbox("Show kept players", value=True, key="show_kept")
         show_drafted = st.checkbox("Show drafted players", key="show_drafted")
@@ -51,6 +58,7 @@ def render_sidebar(active_tab: str, available_columns: list[str]) -> dict:
                         stat_filters[stat] = (min_val, max_val)
 
     return {
+        "click_mode": click_mode.lower(),
         "search": search,
         "hitter_positions": hitter_positions if hitter_positions else None,
         "pitcher_positions": pitcher_positions if pitcher_positions else None,

@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from db.queries import draft_player, get_teams, query_players
+from db.queries import clear_player_tag, draft_player, get_player_tags, get_teams, query_players, set_player_tag
 
 # Column groups — ordered dict of group_name -> column list
 COLUMN_GROUPS = {
@@ -74,6 +74,40 @@ def _draft_hitter_dialog(player_name: str):
         st.rerun()
 
 
+TAG_COLORS = {
+    "target": "color: #28a745; font-weight: bold",
+    "avoid": "color: #6f42c1; font-weight: bold",
+    "injury": "color: #dc3545; font-weight: bold",
+}
+
+
+@st.dialog("Tag Player")
+def _tag_hitter_dialog(player_name: str):
+    """Dialog overlay for tagging a hitter."""
+    st.markdown(f"**{player_name}**")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        if st.button("Target", key="tag_hitter_target", use_container_width=True):
+            set_player_tag(player_name, "target")
+            del st.session_state["hitters_table"]
+            st.rerun()
+    with col2:
+        if st.button("Avoid", key="tag_hitter_avoid", use_container_width=True):
+            set_player_tag(player_name, "avoid")
+            del st.session_state["hitters_table"]
+            st.rerun()
+    with col3:
+        if st.button("Injury", key="tag_hitter_injury", use_container_width=True):
+            set_player_tag(player_name, "injury")
+            del st.session_state["hitters_table"]
+            st.rerun()
+    with col4:
+        if st.button("Clear", key="tag_hitter_clear", use_container_width=True):
+            clear_player_tag(player_name)
+            del st.session_state["hitters_table"]
+            st.rerun()
+
+
 def render_hitters(filters: dict):
     """Render the hitters tab."""
     df = query_players(
@@ -100,8 +134,12 @@ def render_hitters(filters: dict):
     drafted_mask = df["is_drafted"] == 1
     df.loc[drafted_mask, "salary"] = df.loc[drafted_mask, "draft_price"]
 
+    # Load player tags
+    tags = get_player_tags()
+    df["_tag"] = df["name"].map(tags).fillna("")
+
     all_cols = df.columns.tolist()
-    hidden = {"is_drafted", "draft_price", "is_keeper", "avail"}
+    hidden = {"is_drafted", "draft_price", "is_keeper", "avail", "_tag"}
 
     # Column selection by group
     with st.expander("Column selection"):
@@ -127,7 +165,7 @@ def render_hitters(filters: dict):
 
     display_df = df[display_cols].copy()
 
-    # Style salary and avail columns
+    # Style salary, avail, and name columns
     def highlight_cells(col):
         styles = [""] * len(col)
         if col.name == "salary":
@@ -142,6 +180,11 @@ def render_hitters(filters: dict):
                     styles[i] = "color: #999999"
                 else:
                     styles[i] = "color: #28a745; background-color: #d4edda"
+        elif col.name == "name":
+            for i, idx in enumerate(col.index):
+                tag = df.loc[idx, "_tag"]
+                if tag in TAG_COLORS:
+                    styles[i] = TAG_COLORS[tag]
         return styles
 
     styled = display_df.style.apply(highlight_cells)
@@ -166,7 +209,9 @@ def render_hitters(filters: dict):
         idx = selected_rows[0]
         if idx < len(df):
             player = df.iloc[idx]
-            if player["is_drafted"] == 1:
+            if filters["click_mode"] == "tag":
+                _tag_hitter_dialog(player["name"])
+            elif player["is_drafted"] == 1:
                 st.warning(f"{player['name']} has already been drafted.")
             elif player["salary"] and player["salary"] > 0:
                 st.warning(f"{player['name']} is already owned (${int(player['salary'])}).")

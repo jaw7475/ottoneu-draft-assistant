@@ -52,6 +52,14 @@ ROSTER_SLOTS = [
 ]
 
 
+PLAYER_TAGS_DDL = """
+CREATE TABLE IF NOT EXISTS player_tags (
+    player_name TEXT PRIMARY KEY,
+    tag TEXT CHECK(tag IN ('target','avoid','injury'))
+)
+"""
+
+
 POSITION_TARGETS_DDL = """
 CREATE TABLE IF NOT EXISTS position_targets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,6 +77,7 @@ def create_tables(conn):
     conn.execute(VALUATION_CONFIG_DDL)
     conn.execute(HISTORICAL_PRICES_DDL)
     conn.execute(ROSTER_PLAN_DDL)
+    conn.execute(PLAYER_TAGS_DDL)
     conn.execute(POSITION_TARGETS_DDL)
     _seed_roster_plan(conn)
     conn.commit()

@@ -311,6 +311,33 @@ def recalculate_values() -> None:
     conn.close()
 
 
+def get_player_tags() -> dict[str, str]:
+    """Batch load all player tags as {name: tag}."""
+    conn = get_connection()
+    rows = conn.execute("SELECT player_name, tag FROM player_tags").fetchall()
+    conn.close()
+    return {r["player_name"]: r["tag"] for r in rows}
+
+
+def set_player_tag(player_name: str, tag: str) -> None:
+    """Set a tag for a player (target, avoid, or injury)."""
+    conn = get_connection()
+    conn.execute(
+        "INSERT OR REPLACE INTO player_tags (player_name, tag) VALUES (?, ?)",
+        (player_name, tag),
+    )
+    conn.commit()
+    conn.close()
+
+
+def clear_player_tag(player_name: str) -> None:
+    """Remove a player's tag."""
+    conn = get_connection()
+    conn.execute("DELETE FROM player_tags WHERE player_name = ?", (player_name,))
+    conn.commit()
+    conn.close()
+
+
 def get_position_targets(position: str) -> pd.DataFrame:
     """Get draft targets for a position."""
     conn = get_connection()
