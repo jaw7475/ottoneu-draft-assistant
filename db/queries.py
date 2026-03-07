@@ -314,7 +314,16 @@ def recalculate_values() -> None:
 def get_player_tags() -> dict[str, str]:
     """Batch load all player tags as {name: tag}."""
     conn = get_connection()
-    rows = conn.execute("SELECT player_name, tag FROM player_tags").fetchall()
+    try:
+        rows = conn.execute("SELECT player_name, tag FROM player_tags").fetchall()
+    except sqlite3.OperationalError:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS player_tags ("
+            "player_name TEXT PRIMARY KEY, "
+            "tag TEXT CHECK(tag IN ('target','avoid','injury')))"
+        )
+        conn.commit()
+        rows = []
     conn.close()
     return {r["player_name"]: r["tag"] for r in rows}
 
