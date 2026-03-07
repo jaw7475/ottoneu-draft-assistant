@@ -116,9 +116,8 @@ def render_hitters(filters: dict):
         search = st.text_input("Search player", key="hitter_search")
     with clear_col:
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("Clear", key="hitter_search_clear", use_container_width=True):
-            st.session_state["hitter_search"] = ""
-            st.rerun()
+        st.button("Clear", key="hitter_search_clear", use_container_width=True,
+                  on_click=lambda: st.session_state.update({"hitter_search": ""}))
 
     df = query_players(
         table="hitters",
