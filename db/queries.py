@@ -7,12 +7,16 @@ import pandas as pd
 from db.connection import get_connection
 
 
+MY_TEAM = "Zack Wheeler\u2019s Closet Rib"
+
+
 def query_players(
     table: str,
     search: str = "",
     positions: list[str] | None = None,
     show_drafted: bool = False,
     show_kept: bool = True,
+    show_my_team: bool = False,
     sort_by: str = "fpts",
     sort_asc: bool = False,
     stat_filters: dict[str, tuple[float | None, float | None]] | None = None,
@@ -23,10 +27,18 @@ def query_players(
     params = []
 
     if not show_drafted:
-        conditions.append("is_drafted = 0")
+        if show_my_team:
+            conditions.append("(is_drafted = 0 OR ottoneu_team = ?)")
+            params.append(MY_TEAM)
+        else:
+            conditions.append("is_drafted = 0")
 
     if not show_kept:
-        conditions.append("is_keeper = 0")
+        if show_my_team:
+            conditions.append("(is_keeper = 0 OR ottoneu_team = ?)")
+            params.append(MY_TEAM)
+        else:
+            conditions.append("is_keeper = 0")
 
     if search:
         conditions.append("name LIKE ?")

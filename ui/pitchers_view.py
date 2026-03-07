@@ -128,6 +128,7 @@ def render_pitchers(filters: dict):
         positions=filters["pitcher_positions"],
         show_drafted=filters["show_drafted"],
         show_kept=filters["show_kept"],
+        show_my_team=filters.get("show_my_team", False),
         sort_by=filters["sort_by"],
         sort_asc=filters["sort_asc"],
         stat_filters=filters["stat_filters"],
