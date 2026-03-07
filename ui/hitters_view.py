@@ -17,16 +17,6 @@ COLUMN_GROUPS = {
 # Divider names (unique whitespace strings) between groups
 DIVIDERS = [" ", "  ", "   ", "    ", "     "]
 
-# Subtle background tints per category group (shared with pitchers)
-GROUP_COLORS = {
-    "Player Info": "",
-    "Rankings": "background-color: #e8f0fe",
-    "Fantasy": "background-color: #e6f4ea",
-    "Basic Stats": "background-color: #fef7e0",
-    "Projections": "background-color: #f3e8fd",
-    "Advanced": "background-color: #fce8e6",
-}
-
 COLUMN_CONFIG = {
     "avail": st.column_config.TextColumn("", width=47),
     "dollar_value": st.column_config.NumberColumn("$Value", format="$%d"),
@@ -165,22 +155,20 @@ def render_hitters(filters: dict):
     selected_groups = filters.get("hitter_selected_groups", {})
     display_cols, col_to_group = _build_display_cols(all_cols, selected_groups)
 
-    # Add divider columns to the dataframe
+    # Add divider columns to the dataframe with a visible separator
     for d in DIVIDERS:
         if d in display_cols:
-            df[d] = ""
+            df[d] = "│"
 
     display_df = df[display_cols].copy()
 
-    # Style cells with group background tints and column-specific overrides
+    # Style specialized columns and dividers
+    divider_set = set(DIVIDERS)
+    style_cols = [c for c in ["avail", "name", "salary"] if c in display_cols]
+    style_cols += [d for d in DIVIDERS if d in display_cols]
+
     def highlight_cells(col):
-        if col.name in DIVIDERS:
-            return ["background-color: white; color: white"] * len(col)
-
-        group = col_to_group.get(col.name)
-        base = GROUP_COLORS.get(group, "")
-        styles = [base] * len(col)
-
+        styles = [""] * len(col)
         if col.name == "salary":
             for i, idx in enumerate(col.index):
                 if df.loc[idx, "is_drafted"] == 1:
@@ -197,10 +185,12 @@ def render_hitters(filters: dict):
             for i, idx in enumerate(col.index):
                 tag = df.loc[idx, "_tag"]
                 if tag in TAG_COLORS:
-                    styles[i] = TAG_COLORS[tag] + ("; " + base if base else "")
+                    styles[i] = TAG_COLORS[tag]
+        elif col.name in divider_set:
+            styles = ["color: #cccccc; background-color: #f0f0f0"] * len(col)
         return styles
 
-    styled = display_df.style.apply(highlight_cells)
+    styled = display_df.style.apply(highlight_cells, subset=style_cols)
 
     col_cfg = {k: v for k, v in COLUMN_CONFIG.items() if k in display_cols}
     st.dataframe(
