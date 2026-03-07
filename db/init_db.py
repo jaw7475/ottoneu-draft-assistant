@@ -47,12 +47,26 @@ def init_db():
     pitchers = merge_pitchers(files)
     print(f"  Merged pitchers: {len(pitchers)} rows, {len(pitchers.columns)} columns")
 
-    # Preserve player tags across rebuilds
+    # Preserve user data across rebuilds
     saved_tags = []
+    saved_roster = []
+    saved_targets = []
     if DB_PATH.exists():
         conn = get_connection()
         try:
             saved_tags = conn.execute("SELECT player_name, tag FROM player_tags").fetchall()
+        except Exception:
+            pass
+        try:
+            saved_roster = conn.execute(
+                "SELECT slot_position, slot_number, player_name, budgeted_salary, actual_salary FROM roster_plan"
+            ).fetchall()
+        except Exception:
+            pass
+        try:
+            saved_targets = conn.execute(
+                "SELECT position, player_name, role FROM position_targets"
+            ).fetchall()
         except Exception:
             pass
         conn.close()
@@ -67,7 +81,7 @@ def init_db():
     create_tables(conn)
     _seed_default_config(conn)
 
-    # Restore saved tags
+    # Restore saved user data
     if saved_tags:
         for row in saved_tags:
             conn.execute(
@@ -76,6 +90,26 @@ def init_db():
             )
         conn.commit()
         print(f"  Restored {len(saved_tags)} player tags")
+
+    if saved_roster:
+        for row in saved_roster:
+            conn.execute(
+                "UPDATE roster_plan SET player_name = ?, budgeted_salary = ?, actual_salary = ? "
+                "WHERE slot_position = ? AND slot_number = ?",
+                (row["player_name"], row["budgeted_salary"], row["actual_salary"],
+                 row["slot_position"], row["slot_number"]),
+            )
+        conn.commit()
+        print(f"  Restored {len(saved_roster)} roster plan slots")
+
+    if saved_targets:
+        for row in saved_targets:
+            conn.execute(
+                "INSERT OR IGNORE INTO position_targets (position, player_name, role) VALUES (?, ?, ?)",
+                (row["position"], row["player_name"], row["role"]),
+            )
+        conn.commit()
+        print(f"  Restored {len(saved_targets)} position targets")
 
     # Calculate dollar values if projections are available
     config = _load_config(conn)
