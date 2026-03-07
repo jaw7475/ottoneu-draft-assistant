@@ -81,9 +81,10 @@ TAG_COLORS = {
 }
 
 
-def _tag_pitcher_inline(player_name: str):
-    """Inline tag controls for a pitcher."""
-    st.markdown(f"**Tag: {player_name}**")
+@st.dialog("Tag Player")
+def _tag_pitcher_dialog(player_name: str):
+    """Dialog overlay for tagging a pitcher."""
+    st.markdown(f"**{player_name}**")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         if st.button("Target", key="tag_pitcher_target", use_container_width=True):
@@ -209,7 +210,7 @@ def render_pitchers(filters: dict):
         if idx < len(df):
             player = df.iloc[idx]
             if filters["click_mode"] == "tag":
-                _tag_pitcher_inline(player["name"])
+                _tag_pitcher_dialog(player["name"])
             elif player["is_drafted"] == 1:
                 st.warning(f"{player['name']} has already been drafted.")
             elif player["salary"] and player["salary"] > 0:
