@@ -52,12 +52,24 @@ ROSTER_SLOTS = [
 ]
 
 
+POSITION_TARGETS_DDL = """
+CREATE TABLE IF NOT EXISTS position_targets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    position TEXT NOT NULL,
+    player_name TEXT DEFAULT '',
+    role TEXT DEFAULT 'Starter',
+    UNIQUE(position, player_name)
+)
+"""
+
+
 def create_tables(conn):
     """Create supporting tables. Hitters/pitchers tables are created by pandas to_sql."""
     conn.execute(DRAFT_LOG_DDL)
     conn.execute(VALUATION_CONFIG_DDL)
     conn.execute(HISTORICAL_PRICES_DDL)
     conn.execute(ROSTER_PLAN_DDL)
+    conn.execute(POSITION_TARGETS_DDL)
     _seed_roster_plan(conn)
     conn.commit()
 

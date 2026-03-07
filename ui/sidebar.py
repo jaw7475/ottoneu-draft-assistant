@@ -32,7 +32,7 @@ def render_sidebar(active_tab: str, available_columns: list[str]) -> dict:
         # Sort controls
         st.subheader("Sort")
         sort_options = [c for c in available_columns if c not in ("name", "ottoneu_team", "position", "is_drafted", "is_keeper")]
-        default_sort = "fpts" if "fpts" in sort_options else sort_options[0] if sort_options else "name"
+        default_sort = "proj_fpts" if "proj_fpts" in sort_options else "fpts" if "fpts" in sort_options else sort_options[0] if sort_options else "name"
         sort_by = st.selectbox("Sort by", sort_options, index=sort_options.index(default_sort) if default_sort in sort_options else 0, key="sort_by")
         sort_asc = st.checkbox("Ascending", key="sort_asc")
 

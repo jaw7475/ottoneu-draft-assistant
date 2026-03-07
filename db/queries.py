@@ -309,3 +309,31 @@ def recalculate_values() -> None:
     hitters.to_sql("hitters", conn, if_exists="replace", index=False)
     pitchers.to_sql("pitchers", conn, if_exists="replace", index=False)
     conn.close()
+
+
+def get_position_targets(position: str) -> pd.DataFrame:
+    """Get draft targets for a position."""
+    conn = get_connection()
+    df = pd.read_sql(
+        "SELECT id, player_name, role FROM position_targets WHERE position = ? ORDER BY id",
+        conn,
+        params=(position,),
+    )
+    conn.close()
+    return df
+
+
+def save_position_targets(position: str, rows: list[dict]) -> None:
+    """Replace all targets for a position."""
+    conn = get_connection()
+    conn.execute("DELETE FROM position_targets WHERE position = ?", (position,))
+    for row in rows:
+        name = row.get("player_name", "").strip()
+        role = row.get("role", "Starter")
+        if name:
+            conn.execute(
+                "INSERT OR IGNORE INTO position_targets (position, player_name, role) VALUES (?, ?, ?)",
+                (position, name, role),
+            )
+    conn.commit()
+    conn.close()
