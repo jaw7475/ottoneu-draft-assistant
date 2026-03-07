@@ -16,7 +16,12 @@ PITCHER_KEY_STATS = [
 ]
 
 
-def render_sidebar(active_tab: str, available_columns: list[str]) -> dict:
+def render_sidebar(active_tab: str, available_columns: list[str],
+                   hitter_column_groups: dict | None = None,
+                   pitcher_column_groups: dict | None = None,
+                   hitter_all_cols: list[str] | None = None,
+                   pitcher_all_cols: list[str] | None = None,
+                   hidden: set | None = None) -> dict:
     """Render sidebar filters and return filter config."""
     with st.sidebar:
         st.header("Filters")
@@ -28,7 +33,6 @@ def render_sidebar(active_tab: str, available_columns: list[str]) -> dict:
             key="click_mode",
         )
 
-        search = st.text_input("Search player", key="search")
         show_kept = st.checkbox("Show kept players", value=True, key="show_kept")
         show_drafted = st.checkbox("Show drafted players", key="show_drafted")
 
@@ -57,9 +61,42 @@ def render_sidebar(active_tab: str, available_columns: list[str]) -> dict:
                     if min_val is not None or max_val is not None:
                         stat_filters[stat] = (min_val, max_val)
 
+        # Column selection by group (for hitters and pitchers)
+        _hidden = hidden or set()
+        hitter_selected = {}
+        pitcher_selected = {}
+
+        if hitter_column_groups and hitter_all_cols is not None:
+            with st.expander("Hitter columns"):
+                for group_name, group_cols in hitter_column_groups.items():
+                    available = [c for c in group_cols if c in hitter_all_cols and c not in _hidden]
+                    if not available:
+                        continue
+                    selected = st.multiselect(
+                        group_name,
+                        available,
+                        default=available,
+                        key=f"hitter_group_{group_name}",
+                    )
+                    hitter_selected[group_name] = selected
+
+        if pitcher_column_groups and pitcher_all_cols is not None:
+            with st.expander("Pitcher columns"):
+                for group_name, group_cols in pitcher_column_groups.items():
+                    available = [c for c in group_cols if c in pitcher_all_cols and c not in _hidden]
+                    if not available:
+                        continue
+                    selected = st.multiselect(
+                        group_name,
+                        available,
+                        default=available,
+                        key=f"pitcher_group_{group_name}",
+                    )
+                    pitcher_selected[group_name] = selected
+
     return {
         "click_mode": click_mode.lower(),
-        "search": search,
+        "search": "",
         "hitter_positions": hitter_positions if hitter_positions else None,
         "pitcher_positions": pitcher_positions if pitcher_positions else None,
         "show_kept": show_kept,
@@ -67,4 +104,6 @@ def render_sidebar(active_tab: str, available_columns: list[str]) -> dict:
         "sort_by": sort_by,
         "sort_asc": sort_asc,
         "stat_filters": stat_filters if stat_filters else None,
+        "hitter_selected_groups": hitter_selected,
+        "pitcher_selected_groups": pitcher_selected,
     }

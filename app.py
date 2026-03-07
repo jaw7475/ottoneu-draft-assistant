@@ -10,8 +10,8 @@ import streamlit as st
 
 from db.connection import db_exists
 from db.queries import get_column_names
-from ui.hitters_view import render_hitters
-from ui.pitchers_view import render_pitchers
+from ui.hitters_view import COLUMN_GROUPS as HITTER_COLUMN_GROUPS, render_hitters
+from ui.pitchers_view import COLUMN_GROUPS as PITCHER_COLUMN_GROUPS, render_pitchers
 from ui.roster_view import render_roster
 from ui.settings import render_settings
 from ui.sidebar import render_sidebar
@@ -38,7 +38,17 @@ if "active_tab" not in st.session_state:
 active = st.session_state.active_tab
 table = "hitters" if active == "Hitters" else "pitchers"
 columns = get_column_names(table)
-filters = render_sidebar(active, columns)
+hitter_cols = get_column_names("hitters")
+pitcher_cols = get_column_names("pitchers")
+hidden = {"is_drafted", "draft_price", "is_keeper", "avail", "_tag"}
+filters = render_sidebar(
+    active, columns,
+    hitter_column_groups=HITTER_COLUMN_GROUPS,
+    pitcher_column_groups=PITCHER_COLUMN_GROUPS,
+    hitter_all_cols=hitter_cols,
+    pitcher_all_cols=pitcher_cols,
+    hidden=hidden,
+)
 
 # Tabs
 tab_roster, tab_hitters, tab_pitchers, tab_settings = st.tabs(

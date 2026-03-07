@@ -110,9 +110,19 @@ def _tag_pitcher_dialog(player_name: str):
 
 def render_pitchers(filters: dict):
     """Render the pitchers tab."""
+    # Search bar with clear button
+    search_col, clear_col = st.columns([5, 1])
+    with search_col:
+        search = st.text_input("Search player", key="pitcher_search")
+    with clear_col:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("Clear", key="pitcher_search_clear", use_container_width=True):
+            st.session_state["pitcher_search"] = ""
+            st.rerun()
+
     df = query_players(
         table="pitchers",
-        search=filters["search"],
+        search=search,
         positions=filters["pitcher_positions"],
         show_drafted=filters["show_drafted"],
         show_kept=filters["show_kept"],
@@ -139,23 +149,8 @@ def render_pitchers(filters: dict):
     df["_tag"] = df["name"].map(tags).fillna("")
 
     all_cols = df.columns.tolist()
-    hidden = {"is_drafted", "draft_price", "is_keeper", "avail", "_tag"}
 
-    # Column selection by group
-    with st.expander("Column selection"):
-        selected_groups = {}
-        for group_name, group_cols in COLUMN_GROUPS.items():
-            available = [c for c in group_cols if c in all_cols and c not in hidden]
-            if not available:
-                continue
-            selected = st.multiselect(
-                group_name,
-                available,
-                default=available,
-                key=f"pitcher_group_{group_name}",
-            )
-            selected_groups[group_name] = selected
-
+    selected_groups = filters.get("pitcher_selected_groups", {})
     display_cols = _build_display_cols(all_cols, selected_groups)
 
     # Add divider columns to the dataframe
