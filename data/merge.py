@@ -67,16 +67,33 @@ def _merge_position_universe(df: pd.DataFrame, pos_df: pd.DataFrame) -> pd.DataF
         suffixes=("", "_pos"),
     )
 
-    # For overlapping columns, prefer position CSV values for all players
-    # present in the position CSV (even if the value is NA)
+    # For overlapping columns, prefer position CSV values for players
+    # present in the position CSV. For salary, only overwrite when the
+    # position CSV actually has a value (it may be all-NA).
     in_pos = merged["name"].isin(pos_df["name"])
     for col in overlap_cols:
         pos_col = f"{col}_pos"
         if pos_col in merged.columns:
-            merged.loc[in_pos, col] = merged.loc[in_pos, pos_col]
+            if col == "salary":
+                has_val = in_pos & merged[pos_col].notna()
+                merged.loc[has_val, col] = merged.loc[has_val, pos_col]
+            else:
+                merged.loc[in_pos, col] = merged.loc[in_pos, pos_col]
             merged = merged.drop(columns=[pos_col])
 
     return merged
+
+
+def _coerce_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Coerce columns that should be numeric but became object dtype after merges."""
+    text_cols = {"name", "ottoneu_team", "position", "mlb_team", "expert1_tier", "expert2_tier"}
+    bool_cols = {"is_drafted", "is_keeper"}
+    for col in df.columns:
+        if col in text_cols or col in bool_cols:
+            continue
+        if df[col].dtype == object:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df
 
 
 def _prune_irrelevant_players(
@@ -152,6 +169,7 @@ def merge_hitters(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
     df["dollar_value"] = pd.NA
     df["predicted_price"] = pd.NA
     df["surplus_value"] = pd.NA
+    df = _coerce_numeric_columns(df)
     return df
 
 
@@ -202,4 +220,5 @@ def merge_pitchers(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
     df["dollar_value"] = pd.NA
     df["predicted_price"] = pd.NA
     df["surplus_value"] = pd.NA
+    df = _coerce_numeric_columns(df)
     return df

@@ -290,7 +290,9 @@ def load_expert_rankings():
             if "Rank" in df.columns:
                 df["Rank"] = pd.to_numeric(df["Rank"], errors="coerce")
             if "Tier" in df.columns:
-                df["Tier"] = pd.to_numeric(df["Tier"], errors="coerce")
+                # Tier values are price-range strings like "$28-$35"; keep as text
+                df["Tier"] = df["Tier"].astype(str).str.strip()
+                df.loc[df["Tier"].isin(["", "0", "nan", "None"]), "Tier"] = pd.NA
             frames.append(df)
         if not frames:
             return pd.DataFrame()
