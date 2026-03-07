@@ -17,6 +17,16 @@ COLUMN_GROUPS = {
 # Divider names (unique whitespace strings) between groups
 DIVIDERS = [" ", "  ", "   ", "    ", "     "]
 
+# Subtle background tints per category group (shared with hitters)
+GROUP_COLORS = {
+    "Player Info": "",
+    "Rankings": "background-color: #e8f0fe",
+    "Fantasy": "background-color: #e6f4ea",
+    "Basic Stats": "background-color: #fef7e0",
+    "Projections": "background-color: #f3e8fd",
+    "Advanced": "background-color: #fce8e6",
+}
+
 COLUMN_CONFIG = {
     "avail": st.column_config.TextColumn("", width=47),
     "dollar_value": st.column_config.NumberColumn("$Value", format="$%d"),
@@ -42,11 +52,12 @@ for d in DIVIDERS:
 
 
 def _build_display_cols(all_cols, selected_groups):
-    """Build display column list with dividers between groups."""
+    """Build display column list with dividers between groups. Returns (cols, col_to_group)."""
     display_cols = []
+    col_to_group = {}
     group_names = list(COLUMN_GROUPS.keys())
     divider_idx = 0
-    for i, group_name in enumerate(group_names):
+    for group_name in group_names:
         group_cols = selected_groups.get(group_name, [])
         cols = [c for c in group_cols if c in all_cols]
         if not cols:
@@ -54,8 +65,10 @@ def _build_display_cols(all_cols, selected_groups):
         if display_cols and divider_idx < len(DIVIDERS):
             display_cols.append(DIVIDERS[divider_idx])
             divider_idx += 1
+        for c in cols:
+            col_to_group[c] = group_name
         display_cols.extend(cols)
-    return display_cols
+    return display_cols, col_to_group
 
 
 @st.dialog("Draft Player")
@@ -150,7 +163,7 @@ def render_pitchers(filters: dict):
     all_cols = df.columns.tolist()
 
     selected_groups = filters.get("pitcher_selected_groups", {})
-    display_cols = _build_display_cols(all_cols, selected_groups)
+    display_cols, col_to_group = _build_display_cols(all_cols, selected_groups)
 
     # Add divider columns to the dataframe
     for d in DIVIDERS:
@@ -159,9 +172,15 @@ def render_pitchers(filters: dict):
 
     display_df = df[display_cols].copy()
 
-    # Style salary, avail, and name columns
+    # Style cells with group background tints and column-specific overrides
     def highlight_cells(col):
-        styles = [""] * len(col)
+        if col.name in DIVIDERS:
+            return ["background-color: white; color: white"] * len(col)
+
+        group = col_to_group.get(col.name)
+        base = GROUP_COLORS.get(group, "")
+        styles = [base] * len(col)
+
         if col.name == "salary":
             for i, idx in enumerate(col.index):
                 if df.loc[idx, "is_drafted"] == 1:
@@ -178,7 +197,7 @@ def render_pitchers(filters: dict):
             for i, idx in enumerate(col.index):
                 tag = df.loc[idx, "_tag"]
                 if tag in TAG_COLORS:
-                    styles[i] = TAG_COLORS[tag]
+                    styles[i] = TAG_COLORS[tag] + ("; " + base if base else "")
         return styles
 
     styled = display_df.style.apply(highlight_cells)
