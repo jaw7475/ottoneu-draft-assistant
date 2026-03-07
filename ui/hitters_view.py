@@ -89,22 +89,22 @@ def _tag_hitter_dialog(player_name: str):
     with col1:
         if st.button("Target", key="tag_hitter_target", use_container_width=True):
             set_player_tag(player_name, "target")
-            del st.session_state["hitters_table"]
+            st.session_state["hitters_table"]["selection"]["rows"] = []
             st.rerun()
     with col2:
         if st.button("Avoid", key="tag_hitter_avoid", use_container_width=True):
             set_player_tag(player_name, "avoid")
-            del st.session_state["hitters_table"]
+            st.session_state["hitters_table"]["selection"]["rows"] = []
             st.rerun()
     with col3:
         if st.button("Injury", key="tag_hitter_injury", use_container_width=True):
             set_player_tag(player_name, "injury")
-            del st.session_state["hitters_table"]
+            st.session_state["hitters_table"]["selection"]["rows"] = []
             st.rerun()
     with col4:
         if st.button("Clear", key="tag_hitter_clear", use_container_width=True):
             clear_player_tag(player_name)
-            del st.session_state["hitters_table"]
+            st.session_state["hitters_table"]["selection"]["rows"] = []
             st.rerun()
 
 

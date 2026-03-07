@@ -89,22 +89,22 @@ def _tag_pitcher_dialog(player_name: str):
     with col1:
         if st.button("Target", key="tag_pitcher_target", use_container_width=True):
             set_player_tag(player_name, "target")
-            del st.session_state["pitchers_table"]
+            st.session_state["pitchers_table"]["selection"]["rows"] = []
             st.rerun()
     with col2:
         if st.button("Avoid", key="tag_pitcher_avoid", use_container_width=True):
             set_player_tag(player_name, "avoid")
-            del st.session_state["pitchers_table"]
+            st.session_state["pitchers_table"]["selection"]["rows"] = []
             st.rerun()
     with col3:
         if st.button("Injury", key="tag_pitcher_injury", use_container_width=True):
             set_player_tag(player_name, "injury")
-            del st.session_state["pitchers_table"]
+            st.session_state["pitchers_table"]["selection"]["rows"] = []
             st.rerun()
     with col4:
         if st.button("Clear", key="tag_pitcher_clear", use_container_width=True):
             clear_player_tag(player_name)
-            del st.session_state["pitchers_table"]
+            st.session_state["pitchers_table"]["selection"]["rows"] = []
             st.rerun()
 
 
