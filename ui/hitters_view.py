@@ -4,13 +4,18 @@ import streamlit as st
 
 from db.queries import draft_player, get_teams, query_players
 
-# Default columns to display (key stats)
-DEFAULT_COLUMNS = [
-    "avail", "name", "ottoneu_team", "salary", "position", "fpts",
-    "dollar_value", "surplus_value", "expert1_rank", "expert2_rank",
-    "pa", "avg", "obp", "slg", "ops", "woba", "wrc_plus",
-    "hr", "sb", "bb_pct", "k_pct", "iso", "babip",
-]
+# Column groups — ordered dict of group_name -> column list
+COLUMN_GROUPS = {
+    "Player Info": ["avail", "name", "salary", "position", "mlb_team", "age", "ottoneu_team"],
+    "Rankings": ["dollar_value", "predicted_price", "surplus_value", "expert1_rank", "expert2_rank", "expert1_tier", "expert2_tier"],
+    "Fantasy": ["fpts", "fpts_per_g", "proj_fpts", "proj_fpts_per_g"],
+    "Basic Stats": ["avg", "obp", "ops", "hr", "iso", "wrc_plus", "xwoba", "bb_pct", "k_pct", "babip", "sb", "cs"],
+    "Projections": ["proj_avg", "proj_ops", "proj_hr", "proj_wrc_plus"],
+    "Advanced": ["barrel_pct", "hard_hit_pct", "ev", "max_ev", "gb_pct", "fb_pct", "pull_pct"],
+}
+
+# Divider names (unique whitespace strings) between groups
+DIVIDERS = [" ", "  ", "   ", "    ", "     "]
 
 COLUMN_CONFIG = {
     "avail": st.column_config.TextColumn("", width=47),
@@ -22,7 +27,35 @@ COLUMN_CONFIG = {
     "expert1_tier": st.column_config.NumberColumn("E1 Tier", format="%d"),
     "expert2_rank": st.column_config.NumberColumn("E2 Rank", format="%d"),
     "expert2_tier": st.column_config.NumberColumn("E2 Tier", format="%d"),
+    "mlb_team": st.column_config.TextColumn("Team", width=60),
+    "age": st.column_config.NumberColumn("Age", format="%.0f", width=50),
+    "xwoba": st.column_config.NumberColumn("xwOBA", format="%.3f"),
+    "barrel_pct": st.column_config.NumberColumn("Barrel%", format="%.1f"),
+    "hard_hit_pct": st.column_config.NumberColumn("HardHit%", format="%.1f"),
+    "ev": st.column_config.NumberColumn("EV", format="%.1f"),
+    "max_ev": st.column_config.NumberColumn("maxEV", format="%.1f"),
 }
+
+# Add divider configs
+for d in DIVIDERS:
+    COLUMN_CONFIG[d] = st.column_config.TextColumn("", width=8, disabled=True)
+
+
+def _build_display_cols(all_cols, selected_groups):
+    """Build display column list with dividers between groups."""
+    display_cols = []
+    group_names = list(COLUMN_GROUPS.keys())
+    divider_idx = 0
+    for i, group_name in enumerate(group_names):
+        group_cols = selected_groups.get(group_name, [])
+        cols = [c for c in group_cols if c in all_cols]
+        if not cols:
+            continue
+        if display_cols and divider_idx < len(DIVIDERS):
+            display_cols.append(DIVIDERS[divider_idx])
+            divider_idx += 1
+        display_cols.extend(cols)
+    return display_cols
 
 
 @st.dialog("Draft Player")
@@ -67,15 +100,30 @@ def render_hitters(filters: dict):
     drafted_mask = df["is_drafted"] == 1
     df.loc[drafted_mask, "salary"] = df.loc[drafted_mask, "draft_price"]
 
-    # Select display columns (only those that exist in the data)
     all_cols = df.columns.tolist()
     hidden = {"is_drafted", "draft_price", "is_keeper", "avail"}
-    display_cols = [c for c in DEFAULT_COLUMNS if c in all_cols]
 
+    # Column selection by group
     with st.expander("Column selection"):
-        extra_cols = [c for c in all_cols if c not in display_cols and c not in hidden]
-        selected_extra = st.multiselect("Additional columns", extra_cols, key="hitter_extra_cols")
-        display_cols = display_cols + selected_extra
+        selected_groups = {}
+        for group_name, group_cols in COLUMN_GROUPS.items():
+            available = [c for c in group_cols if c in all_cols and c not in hidden]
+            if not available:
+                continue
+            selected = st.multiselect(
+                group_name,
+                available,
+                default=available,
+                key=f"hitter_group_{group_name}",
+            )
+            selected_groups[group_name] = selected
+
+    display_cols = _build_display_cols(all_cols, selected_groups)
+
+    # Add divider columns to the dataframe
+    for d in DIVIDERS:
+        if d in display_cols:
+            df[d] = ""
 
     display_df = df[display_cols].copy()
 

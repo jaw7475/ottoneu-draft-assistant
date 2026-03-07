@@ -92,6 +92,13 @@ COLUMN_RENAMES = {
     "Stuff+": "stuff_plus",
     "Location+": "location_plus",
     "Pitching+": "pitching_plus",
+    # Statcast / player info
+    "xwOBA": "xwoba",
+    "xBA": "xba",
+    "xSLG": "xslg",
+    "maxVelo": "max_velo",
+    "WHIP": "whip",
+    "Age": "age",
 }
 
 # Columns that contain percentage strings (with % sign)
@@ -325,6 +332,30 @@ def load_expert_rankings():
     return hitter_rankings, pitcher_rankings
 
 
+def load_player_info() -> pd.DataFrame:
+    """Load player_info.xlsx and return DataFrame with name, mlb_team, age."""
+    path = DATA_DIR / "player_info.xlsx"
+    if not path.exists():
+        return pd.DataFrame()
+    df = pd.read_excel(path, engine="openpyxl")
+    # Keep only the columns we need
+    cols = {}
+    if "Name" in df.columns:
+        cols["Name"] = "name"
+    if "Team" in df.columns:
+        cols["Team"] = "mlb_team"
+    if "Age" in df.columns:
+        cols["Age"] = "age"
+    if "name" not in cols.values():
+        return pd.DataFrame()
+    df = df[list(cols.keys())].rename(columns=cols)
+    df = df.dropna(subset=["name"])
+    df["name"] = df["name"].apply(normalize_name)
+    if "age" in df.columns:
+        df["age"] = pd.to_numeric(df["age"], errors="coerce")
+    return df
+
+
 def load_all():
     """Load all source files and return them as a dict."""
     result = {
@@ -336,6 +367,16 @@ def load_all():
         "pitchers_fantasy": load_file("pitchers_fantasy.csv"),
         "pitchers_modeling": load_file("pitchers_modeling.csv"),
     }
+
+    # Load hitter statcast if it exists
+    statcast_path = DATA_DIR / "hitter_statcast.csv"
+    if statcast_path.exists():
+        result["hitters_statcast"] = load_file("hitter_statcast.csv")
+
+    # Load player info if it exists
+    player_info = load_player_info()
+    if not player_info.empty:
+        result["player_info"] = player_info
 
     # Load projection files if they exist
     hitter_proj = load_projections("proj_hitters.csv")

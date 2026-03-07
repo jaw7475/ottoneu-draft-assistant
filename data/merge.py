@@ -112,6 +112,10 @@ def merge_hitters(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
     df = _merge_pair(df, files["hitters_advanced"])
     df = _merge_pair(df, files["hitters_batted_ball"])
 
+    # Merge hitter statcast if available
+    if "hitters_statcast" in files:
+        df = _merge_pair(df, files["hitters_statcast"])
+
     # Merge projections if available (OUTER join)
     if "hitters_projections" in files:
         df = _merge_projections(df, files["hitters_projections"])
@@ -119,6 +123,13 @@ def merge_hitters(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # Merge position universe if available
     if "hitters_positions" in files:
         df = _merge_position_universe(df, files["hitters_positions"])
+
+    # Merge player info (mlb_team, age) if available
+    if "player_info" in files:
+        info = files["player_info"].drop_duplicates(subset="name", keep="first")
+        info_cols = [c for c in info.columns if c not in df.columns or c == "name"]
+        if len(info_cols) > 1:
+            df = df.merge(info[info_cols], on="name", how="left")
 
     # Prune irrelevant players
     df = _prune_irrelevant_players(df, playing_time_col="pa")
@@ -158,6 +169,17 @@ def merge_pitchers(files: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # Merge position universe if available
     if "pitchers_positions" in files:
         df = _merge_position_universe(df, files["pitchers_positions"])
+
+    # Merge player info (mlb_team, age) if available
+    if "player_info" in files:
+        info = files["player_info"].drop_duplicates(subset="name", keep="first")
+        info_cols = [c for c in info.columns if c not in df.columns or c == "name"]
+        if len(info_cols) > 1:
+            df = df.merge(info[info_cols], on="name", how="left")
+
+    # Compute WHIP from hits and walks / innings pitched
+    if "h" in df.columns and "bb" in df.columns and "ip" in df.columns:
+        df["whip"] = (df["h"] + df["bb"]) / df["ip"]
 
     # Prune irrelevant players
     df = _prune_irrelevant_players(df, playing_time_col="ip")
