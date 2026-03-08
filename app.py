@@ -39,7 +39,7 @@ active = st.session_state.active_tab
 table = "hitters" if active == "Hitters" else "pitchers"
 columns = get_column_names(table)
 hitter_cols = get_column_names("hitters")
-pitcher_cols = get_column_names("pitchers")
+pitcher_cols = get_column_names("pitchers") + ["proj_sph"]
 hidden = {"is_drafted", "draft_price", "is_keeper", "avail", "_tag"}
 filters = render_sidebar(
     active, columns,
