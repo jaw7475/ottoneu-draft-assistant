@@ -20,11 +20,16 @@ def render_roster():
     filled = int((df["actual_salary"] > 0).sum())
     total_slots = len(df)
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Budget", f"${TOTAL_BUDGET}")
-    c2.metric("Budgeted", f"${budgeted}", delta=f"${TOTAL_BUDGET - budgeted} remaining")
-    c3.metric("Spent", f"${spent}", delta=f"${TOTAL_BUDGET - spent} remaining")
-    c4.metric("Roster Filled", f"{filled} / {total_slots}")
+    budget_remaining = TOTAL_BUDGET - budgeted
+    salary_remaining = TOTAL_BUDGET - spent
+    spots_remaining = total_slots - filled
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("Budget Remaining", f"${budget_remaining}", delta=f"${budgeted} budgeted")
+    c2.metric("Salary Remaining", f"${salary_remaining}", delta=f"${spent} spent")
+    c3.metric("Roster Spots Left", f"{spots_remaining}", delta=f"{filled} / {total_slots} filled")
+    c4.metric("Budget / Spot", f"${budget_remaining // spots_remaining if spots_remaining else 0}")
+    c5.metric("Salary / Spot", f"${salary_remaining // spots_remaining if spots_remaining else 0}")
 
     st.divider()
 
