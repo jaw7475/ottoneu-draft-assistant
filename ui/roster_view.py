@@ -114,6 +114,7 @@ def _render_position_targets():
                         for _, r in edited.iterrows()
                         if pd.notna(r["player_name"]) and str(r["player_name"]).strip()]
                 save_position_targets(pos, rows)
+                st.rerun()
 
 
 def _slot_count(df: pd.DataFrame, pos: str) -> int:
