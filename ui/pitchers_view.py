@@ -3,7 +3,7 @@
 import pandas as pd
 import streamlit as st
 
-from db.queries import clear_player_tag, draft_player, get_full_pool_columns, get_model_targets, get_player_tags, get_teams, query_players, set_player_tag
+from db.queries import clear_player_tag, draft_player, get_full_pool_columns, get_model_targets, get_player_tags, query_players, set_player_tag
 
 # Column groups — ordered dict of group_name -> column list
 COLUMN_GROUPS = {
@@ -192,14 +192,13 @@ def _build_display_cols(all_cols, selected_groups):
 def _draft_pitcher_dialog(player_name: str):
     """Dialog overlay for drafting a pitcher."""
     st.markdown(f"**{player_name}**")
-    teams = get_teams("pitchers")
     price = st.number_input("Draft price ($)", min_value=1, value=None, step=1, key="draft_pitcher_price")
-    team = st.selectbox("Drafting team", [""] + teams, key="draft_pitcher_team")
     if st.button("Confirm Draft", key="draft_pitcher_confirm"):
         if price is None:
             st.error("Please enter a draft price.")
             return
-        draft_player("pitchers", player_name, price, team)
+        draft_player("pitchers", player_name, price, "Drafted")
+        st.session_state["pitchers_table"]["selection"]["rows"] = []
         del st.session_state["pitchers_table"]
         st.rerun()
 
