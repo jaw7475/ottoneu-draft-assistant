@@ -11,7 +11,7 @@ COLUMN_GROUPS = {
     "Rankings": ["dollar_value", "predicted_price", "surplus_value", "expert1_rank", "expert2_rank", "expert1_tier", "expert2_tier"],
     "Fantasy": ["fpts", "fpts_per_ip", "proj_fpts", "proj_fpts_per_ip"],
     "Basic Stats": ["ip", "whip", "era", "xera", "xfip", "k_per_9", "bb_per_9", "hr_per_9", "hr", "hr_per_fb", "sv", "hld"],
-    "Projections": ["proj_ip", "proj_whip", "proj_era", "proj_hr"],
+    "Projections": ["proj_ip", "proj_whip", "proj_era", "proj_hr", "proj_sv", "proj_sph"],
     "Advanced": ["stuff_plus", "location_plus", "pitching_plus", "barrel_pct", "hard_hit_pct", "ev", "gb_pct", "fb_pct", "max_velo"],
 }
 
@@ -59,6 +59,8 @@ COLUMN_CONFIG = {
     "proj_whip": st.column_config.NumberColumn("pWHIP"),
     "proj_era": st.column_config.NumberColumn("pERA"),
     "proj_hr": st.column_config.NumberColumn("pHR"),
+    "proj_sv": st.column_config.NumberColumn("pSV"),
+    "proj_sph": st.column_config.NumberColumn("pSPH"),
     # Advanced
     "stuff_plus": st.column_config.TextColumn("Stuff+"),
     "location_plus": st.column_config.TextColumn("Location+"),
@@ -105,6 +107,8 @@ NUM_FORMATS = {
     "proj_whip": "%.2f",
     "proj_era": "%.2f",
     "proj_hr": "%.0f",
+    "proj_sv": "%.0f",
+    "proj_sph": "%.0f",
     # Advanced
     "stuff_plus": "%.0f",
     "location_plus": "%.0f",
@@ -256,6 +260,9 @@ def render_pitchers(filters: dict):
         sort_asc=filters["sort_asc"],
         stat_filters=filters["stat_filters"],
     )
+
+    # Compute projected saves + holds
+    df["proj_sph"] = df["proj_sv"].fillna(0) + df["proj_hld"].fillna(0)
 
     # Compute availability indicator (three states: keeper, drafted, available)
     def _avail_label(row):
