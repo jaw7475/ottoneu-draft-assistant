@@ -60,6 +60,17 @@ CREATE TABLE IF NOT EXISTS player_tags (
 """
 
 
+MODEL_TARGETS_DDL = """
+CREATE TABLE IF NOT EXISTS model_targets (
+    player_name TEXT PRIMARY KEY,
+    player_type TEXT NOT NULL,
+    pred_fpts REAL,
+    proj_fpts REAL,
+    edge REAL
+)
+"""
+
+
 POSITION_TARGETS_DDL = """
 CREATE TABLE IF NOT EXISTS position_targets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,6 +90,7 @@ def create_tables(conn):
     conn.execute(ROSTER_PLAN_DDL)
     conn.execute(PLAYER_TAGS_DDL)
     conn.execute(POSITION_TARGETS_DDL)
+    conn.execute(MODEL_TARGETS_DDL)
     _seed_roster_plan(conn)
     conn.commit()
 

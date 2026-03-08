@@ -1,8 +1,9 @@
 """Hitters tab view."""
 
+import pandas as pd
 import streamlit as st
 
-from db.queries import clear_player_tag, draft_player, get_player_tags, get_teams, query_players, set_player_tag
+from db.queries import clear_player_tag, draft_player, get_full_pool_columns, get_model_targets, get_player_tags, get_teams, query_players, set_player_tag
 
 # Column groups — ordered dict of group_name -> column list
 COLUMN_GROUPS = {
@@ -18,23 +19,136 @@ COLUMN_GROUPS = {
 DIVIDERS = [" ", "  ", "   ", "    ", "     "]
 
 COLUMN_CONFIG = {
+    # Player Info
     "avail": st.column_config.TextColumn("", width=47),
-    "dollar_value": st.column_config.NumberColumn("$Value", format="$%d"),
-    "surplus_value": st.column_config.NumberColumn("Surplus", format="%+d"),
-    "predicted_price": st.column_config.NumberColumn("Pred$", format="$%d"),
-    "ownership_pct": st.column_config.NumberColumn("Own%", format="%.1f%%"),
-    "expert1_rank": st.column_config.NumberColumn("E1 Rank", format="%d"),
-    "expert1_tier": st.column_config.TextColumn("E1 Tier", width=70),
-    "expert2_rank": st.column_config.NumberColumn("E2 Rank", format="%d"),
-    "expert2_tier": st.column_config.TextColumn("E2 Tier", width=70),
+    "name": st.column_config.TextColumn("Name"),
+    "salary": st.column_config.TextColumn("Salary"),
+    "position": st.column_config.TextColumn("Position"),
     "mlb_team": st.column_config.TextColumn("Team", width=60),
-    "age": st.column_config.NumberColumn("Age", format="%.0f", width=50),
-    "xwoba": st.column_config.NumberColumn("xwOBA", format="%.3f"),
-    "barrel_pct": st.column_config.NumberColumn("Barrel%", format="%.1f"),
-    "hard_hit_pct": st.column_config.NumberColumn("HardHit%", format="%.1f"),
-    "ev": st.column_config.NumberColumn("EV", format="%.1f"),
-    "max_ev": st.column_config.NumberColumn("maxEV", format="%.1f"),
+    "age": st.column_config.NumberColumn("Age", width=50),
+    "ottoneu_team": st.column_config.TextColumn("Ottoneu Team"),
+    # Rankings
+    "dollar_value": st.column_config.NumberColumn("$Value"),
+    "predicted_price": st.column_config.NumberColumn("Pred$"),
+    "surplus_value": st.column_config.NumberColumn("Surplus"),
+    "expert1_rank": st.column_config.NumberColumn("E1 Rank"),
+    "expert2_rank": st.column_config.NumberColumn("E2 Rank"),
+    "expert1_tier": st.column_config.TextColumn("E1 Tier", width=70),
+    "expert2_tier": st.column_config.TextColumn("E2 Tier", width=70),
+    "ownership_pct": st.column_config.NumberColumn("Own%"),
+    # Fantasy
+    "fpts": st.column_config.NumberColumn("FPTS"),
+    "fpts_per_g": st.column_config.NumberColumn("PPG"),
+    "proj_fpts": st.column_config.NumberColumn("pFPTS"),
+    "proj_fpts_per_g": st.column_config.NumberColumn("pPPG"),
+    # Basic Stats
+    "avg": st.column_config.NumberColumn("AVG"),
+    "obp": st.column_config.NumberColumn("OBP"),
+    "ops": st.column_config.NumberColumn("OPS"),
+    "hr": st.column_config.NumberColumn("HR"),
+    "iso": st.column_config.TextColumn("ISO"),
+    "wrc_plus": st.column_config.NumberColumn("wRC+"),
+    "xwoba": st.column_config.TextColumn("xwOBA"),
+    "bb_pct": st.column_config.TextColumn("BB%"),
+    "k_pct": st.column_config.TextColumn("K%"),
+    "babip": st.column_config.NumberColumn("BABIP"),
+    "sb": st.column_config.NumberColumn("SB"),
+    "cs": st.column_config.NumberColumn("CS"),
+    # Projections
+    "proj_avg": st.column_config.NumberColumn("pAVG"),
+    "proj_ops": st.column_config.NumberColumn("pOPS"),
+    "proj_hr": st.column_config.NumberColumn("pHR"),
+    "proj_wrc_plus": st.column_config.NumberColumn("pwRC+"),
+    # Advanced
+    "barrel_pct": st.column_config.TextColumn("Barrel%"),
+    "hard_hit_pct": st.column_config.TextColumn("HardHit%"),
+    "ev": st.column_config.TextColumn("EV"),
+    "max_ev": st.column_config.TextColumn("MaxEV"),
+    "gb_pct": st.column_config.TextColumn("GB%"),
+    "fb_pct": st.column_config.TextColumn("FB%"),
+    "pull_pct": st.column_config.TextColumn("Pull%"),
 }
+
+# Number format strings for Styler (applied instead of column_config format)
+NUM_FORMATS = {
+    # Rankings
+    "dollar_value": "$%.0f",
+    "surplus_value": "%+.0f",
+    "predicted_price": "$%.0f",
+    "expert1_rank": "%.0f",
+    "expert2_rank": "%.0f",
+    # Player Info
+    "ownership_pct": "%.1f%%",
+    "age": "%.0f",
+    # Fantasy
+    "fpts": "%.0f",
+    "fpts_per_g": "%.2f",
+    "proj_fpts": "%.0f",
+    "proj_fpts_per_g": "%.2f",
+    # Basic Stats
+    "avg": "%.3f",
+    "obp": "%.3f",
+    "ops": "%.3f",
+    "iso": "%.3f",
+    "babip": "%.3f",
+    "woba": "%.3f",
+    "xwoba": "%.3f",
+    "bb_pct": "%.1f",
+    "k_pct": "%.1f",
+    "hr": "%.0f",
+    "sb": "%.0f",
+    "cs": "%.0f",
+    "wrc_plus": "%.0f",
+    # Projections
+    "proj_avg": "%.3f",
+    "proj_ops": "%.3f",
+    "proj_hr": "%.0f",
+    "proj_wrc_plus": "%.0f",
+    # Advanced
+    "barrel_pct": "%.1f",
+    "hard_hit_pct": "%.1f",
+    "ev": "%.1f",
+    "max_ev": "%.1f",
+    "gb_pct": "%.1f",
+    "fb_pct": "%.1f",
+    "pull_pct": "%.1f",
+}
+
+# Columns where lower is better (sorted ascending) — NaN sentinel is large positive
+ASC_COLS = {"expert1_rank", "expert2_rank", "k_pct", "gb_pct"}
+
+# Columns to annotate with percentile emoji indicators
+# "higher" = high values are good (🟢), "lower" = low values are good (🟢)
+EMOJI_COLS = {
+    "iso": "higher",
+    "xwoba": "higher",
+    "bb_pct": "higher",
+    "k_pct": "lower",
+    "barrel_pct": "higher",
+    "hard_hit_pct": "higher",
+    "ev": "higher",
+    "max_ev": "higher",
+    "gb_pct": "lower",
+    "fb_pct": "higher",
+    "pull_pct": "higher",
+}
+
+
+def _percentile_emoji(pct, direction):
+    """Return emoji for a percentile value given direction preference."""
+    if pd.isna(pct):
+        return ""
+    if direction == "lower":
+        pct = 1.0 - pct
+    if pct >= 0.9:
+        return " 🟢"
+    if pct >= 0.7:
+        return " 🟡"
+    if pct <= 0.1:
+        return " 🔴"
+    if pct <= 0.3:
+        return " 🟠"
+    return ""
 
 # Add divider configs
 for d in DIVIDERS:
@@ -147,9 +261,14 @@ def render_hitters(filters: dict):
     drafted_mask = df["is_drafted"] == 1
     df.loc[drafted_mask, "salary"] = df.loc[drafted_mask, "draft_price"]
 
-    # Load player tags
+    # Format salary as display string
+    df["salary"] = df["salary"].apply(lambda v: f"${int(v)}" if pd.notna(v) and v > 0 else "")
+
+    # Load player tags and model targets
     tags = get_player_tags()
     df["_tag"] = df["name"].map(tags).fillna("")
+    model_targets = get_model_targets()
+    df["_model_target"] = df["name"].isin(model_targets)
 
     all_cols = df.columns.tolist()
 
@@ -162,6 +281,43 @@ def render_hitters(filters: dict):
             df[d] = "│"
 
     display_df = df[display_cols].copy()
+
+    # Compute percentile ranks against the FULL player pool (stable across filters)
+    full_pool = get_full_pool_columns("hitters", list(EMOJI_COLS.keys()))
+    full_pool_pct = {}
+    for col_name in EMOJI_COLS:
+        if col_name in full_pool.columns:
+            full_pool_pct[col_name] = full_pool.set_index("name")[col_name].rank(pct=True)
+
+    percentile_ranks = {}
+    for col_name in EMOJI_COLS:
+        if col_name in display_df.columns and col_name in full_pool_pct:
+            percentile_ranks[col_name] = df["name"].map(full_pool_pct[col_name])
+
+    # Fill NaN with sentinel so nulls sort to the bottom for the expected direction
+    _SENTINEL_HIGH = 9999999.0   # for ascending columns (lower is better)
+    _SENTINEL_LOW = -9999999.0   # for descending columns (higher is better)
+    numeric_cols = display_df.select_dtypes(include="number").columns
+    for c in numeric_cols:
+        sentinel = _SENTINEL_HIGH if c in ASC_COLS else _SENTINEL_LOW
+        display_df[c] = display_df[c].fillna(sentinel)
+
+    # Format emoji columns as strings with indicators appended
+    for col_name, direction in EMOJI_COLS.items():
+        if col_name not in display_df.columns:
+            continue
+        fmt_str = NUM_FORMATS.get(col_name)
+        pct_series = percentile_ranks[col_name]
+        formatted = []
+        for idx in display_df.index:
+            v = display_df.at[idx, col_name]
+            if isinstance(v, (int, float)) and (v >= _SENTINEL_HIGH or v <= _SENTINEL_LOW):
+                formatted.append("")
+            elif fmt_str:
+                formatted.append((fmt_str % v) + _percentile_emoji(pct_series.get(idx), direction))
+            else:
+                formatted.append(str(v) + _percentile_emoji(pct_series.get(idx), direction))
+        display_df[col_name] = formatted
 
     # Style specialized columns and dividers
     divider_set = set(DIVIDERS)
@@ -184,14 +340,39 @@ def render_hitters(filters: dict):
                     styles[i] = "color: #28a745; background-color: #d4edda"
         elif col.name == "name":
             for i, idx in enumerate(col.index):
+                parts = []
+                if df.loc[idx, "_model_target"]:
+                    parts.append("background-color: #d4edda")
                 tag = df.loc[idx, "_tag"]
                 if tag in TAG_COLORS:
-                    styles[i] = TAG_COLORS[tag]
+                    parts.append(TAG_COLORS[tag])
+                styles[i] = "; ".join(parts)
         elif col.name in divider_set:
             styles = ["color: #cccccc; background-color: #f0f0f0"] * len(col)
         return styles
 
-    styled = display_df.style.apply(highlight_cells, subset=style_cols)
+    def _make_fmt(fmt_str):
+        def _fmt(v):
+            if isinstance(v, (int, float)) and (v >= _SENTINEL_HIGH or v <= _SENTINEL_LOW):
+                return ""
+            if fmt_str:
+                return fmt_str % v
+            # Default: drop trailing zeros
+            if isinstance(v, float) and v == int(v):
+                return str(int(v))
+            return v
+        return _fmt
+
+    # Build formatters only for numeric cols that aren't already string-formatted emoji cols
+    emoji_col_set = set(EMOJI_COLS.keys())
+    col_formatters = {}
+    for c in numeric_cols:
+        if c not in emoji_col_set:
+            col_formatters[c] = _make_fmt(NUM_FORMATS.get(c))
+
+    styled = display_df.style.apply(highlight_cells, subset=style_cols).format(
+        col_formatters, na_rep=""
+    )
 
     col_cfg = {k: v for k, v in COLUMN_CONFIG.items() if k in display_cols}
     st.dataframe(

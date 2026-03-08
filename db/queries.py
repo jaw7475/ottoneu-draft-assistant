@@ -205,6 +205,16 @@ def update_from_position_csv(table: str, pos_df: pd.DataFrame) -> int:
     return updated
 
 
+def get_full_pool_columns(table: str, columns: list[str]) -> pd.DataFrame:
+    """Return name + specified columns for all players (full population)."""
+    conn = get_connection()
+    valid = [c for c in columns if c != "name"]
+    col_list = ", ".join(["name"] + valid)
+    df = pd.read_sql(f"SELECT {col_list} FROM {table}", conn)
+    conn.close()
+    return df
+
+
 def get_column_names(table: str) -> list[str]:
     """Get column names for a table."""
     conn = get_connection()
@@ -357,6 +367,47 @@ def clear_player_tag(player_name: str) -> None:
     conn.execute("DELETE FROM player_tags WHERE player_name = ?", (player_name,))
     conn.commit()
     conn.close()
+
+
+def get_model_targets() -> set[str]:
+    """Return the set of player names flagged as model targets."""
+    conn = get_connection()
+    try:
+        rows = conn.execute("SELECT player_name FROM model_targets WHERE edge > 0").fetchall()
+    except sqlite3.OperationalError:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS model_targets ("
+            "player_name TEXT PRIMARY KEY, "
+            "player_type TEXT NOT NULL, "
+            "pred_fpts REAL, proj_fpts REAL, edge REAL)"
+        )
+        conn.commit()
+        rows = []
+    conn.close()
+    return {r["player_name"] for r in rows}
+
+
+def save_model_targets(targets: list[dict]) -> int:
+    """Replace all model targets. Each dict has player_name, player_type, pred_fpts, proj_fpts, edge."""
+    conn = get_connection()
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS model_targets ("
+        "player_name TEXT PRIMARY KEY, "
+        "player_type TEXT NOT NULL, "
+        "pred_fpts REAL, proj_fpts REAL, edge REAL)"
+    )
+    conn.execute("DELETE FROM model_targets")
+    inserted = 0
+    for row in targets:
+        conn.execute(
+            "INSERT OR REPLACE INTO model_targets (player_name, player_type, pred_fpts, proj_fpts, edge) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (row["player_name"], row["player_type"], row["pred_fpts"], row["proj_fpts"], row["edge"]),
+        )
+        inserted += 1
+    conn.commit()
+    conn.close()
+    return inserted
 
 
 def get_position_targets(position: str) -> pd.DataFrame:
