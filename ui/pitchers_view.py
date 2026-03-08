@@ -414,7 +414,7 @@ def render_pitchers(filters: dict):
                 _tag_pitcher_dialog(player["name"])
             elif player["is_drafted"] == 1:
                 st.warning(f"{player['name']} has already been drafted.")
-            elif player["salary"] and player["salary"] > 0:
-                st.warning(f"{player['name']} is already owned (${int(player['salary'])}).")
+            elif player["is_keeper"] == 1:
+                st.warning(f"{player['name']} is already owned ({player['salary']}).")
             else:
                 _draft_pitcher_dialog(player["name"])
