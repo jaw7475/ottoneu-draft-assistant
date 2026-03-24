@@ -7,7 +7,15 @@ import pandas as pd
 from db.connection import get_connection
 
 
-MY_TEAM = "Zack Wheeler\u2019s Closet Rib"
+def get_my_team_name() -> str:
+    """Get the user's team name from config."""
+    config = get_valuation_config()
+    return config.get("my_team_name", "")
+
+
+def set_my_team_name(name: str) -> None:
+    """Set the user's team name in config."""
+    set_valuation_config({"my_team_name": name})
 
 
 def query_players(
@@ -26,17 +34,19 @@ def query_players(
     conditions = []
     params = []
 
+    my_team = get_my_team_name()
+
     if not show_drafted:
-        if show_my_team:
+        if show_my_team and my_team:
             conditions.append("(is_drafted = 0 OR ottoneu_team = ?)")
-            params.append(MY_TEAM)
+            params.append(my_team)
         else:
             conditions.append("is_drafted = 0")
 
     if not show_kept:
-        if show_my_team:
+        if show_my_team and my_team:
             conditions.append("(is_keeper = 0 OR ottoneu_team = ?)")
-            params.append(MY_TEAM)
+            params.append(my_team)
         else:
             conditions.append("is_keeper = 0")
 

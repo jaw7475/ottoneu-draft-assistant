@@ -1,13 +1,14 @@
 """Load and clean source CSV/XLSX files."""
 
+import os
 import re
 import unicodedata
 from pathlib import Path
 
 import pandas as pd
 
-# Parent directory where source files live
-DATA_DIR = Path(__file__).resolve().parent.parent.parent
+# Parent directory where source files live (override with OTTONEU_DATA_DIR env var)
+DATA_DIR = Path(os.environ["OTTONEU_DATA_DIR"]) if os.environ.get("OTTONEU_DATA_DIR") else Path(__file__).resolve().parent.parent.parent
 
 # Column rename mapping: original name → SQL-friendly name
 COLUMN_RENAMES = {

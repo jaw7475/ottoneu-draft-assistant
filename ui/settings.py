@@ -5,8 +5,10 @@ import streamlit as st
 from data.positions import load_position_universe
 from db.queries import (
     get_historical_prices,
+    get_my_team_name,
     get_valuation_config,
     recalculate_values,
+    set_my_team_name,
     set_valuation_config,
     update_from_position_csv,
 )
@@ -15,6 +17,8 @@ from valuation.dollar_value import DEFAULT_CONFIG
 
 def render_settings():
     """Render the settings tab."""
+    _render_team_name()
+    st.divider()
     _render_league_config()
     st.divider()
     _render_position_upload()
@@ -22,6 +26,21 @@ def render_settings():
     _render_historical_upload()
     st.divider()
     _render_reload()
+
+
+def _render_team_name():
+    """Team name configuration."""
+    st.subheader("My Team")
+    current_name = get_my_team_name()
+    new_name = st.text_input(
+        "Your Ottoneu team name",
+        value=current_name,
+        help="Used by the 'Show my team' filter to highlight your players.",
+        key="cfg_team_name",
+    )
+    if new_name != current_name:
+        set_my_team_name(new_name)
+        st.rerun()
 
 
 def _render_league_config():
